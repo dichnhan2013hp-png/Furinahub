@@ -1,6 +1,6 @@
 -- ==============================================================================
--- [ROBLOX LUAU UNC-COMPLIANT: FURINA HUB - ULTIMATE DASHBOARD v3.1]
--- Modern Sidebar UI, Touch Fling, Aimbot, Anti-Fling & Lag Fixer
+-- [ROBLOX LUAU UNC-COMPLIANT: FURINA HUB - ULTIMATE DASHBOARD v3.2]
+-- Fixed: Smooth Touch Fling & Non-invasive Anti-Fling (No Jump/Movement Bugs)
 -- ==============================================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -113,7 +113,7 @@ ToggleStroke.Color = Color3.fromRGB(0, 190, 255)
 ToggleStroke.Thickness = 2.5
 ToggleStroke.Parent = ToggleBtn
 
--- Main Window (Giao diện chính v3.1)
+-- Main Window (Giao diện chính v3.2)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 560, 0, 360)
@@ -168,7 +168,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -100, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "💧 FURINA HUB | Ultimate Dashboard v3.1"
+Title.Text = "💧 FURINA HUB | Ultimate Dashboard v3.2"
 Title.TextColor3 = Color3.fromRGB(220, 240, 255)
 Title.TextSize = 14
 Title.Font = Enum.Font.GothamBold
@@ -226,7 +226,7 @@ ContentContainer.Parent = MainFrame
 
 -- 4. DRAGGABLE LOGIC (Cross-Platform)
 local function MakeDraggable(obj)
-    local dragging, dragInput, dragStart, startPos
+    local dragging, dragStart, startPos
     obj.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
@@ -426,7 +426,7 @@ AddLagButton("💥 Chế độ 3: Fix Lag Mạnh (Potato)", "Xóa toàn bộ hi�
 end)
 
 
--- --- TAB 2: OTHER (Aimbot, Anti-Fling, Touch Fling) ---
+-- --- TAB 2: OTHER (Touch Fling, Aimbot, Anti-Fling Fixed) ---
 local function AddOtherToggle(titleText, descText, accentColor, callback)
     local card = Instance.new("TextButton")
     card.Size = UDim2.new(1, 0, 0, 52)
@@ -484,24 +484,28 @@ local function AddOtherToggle(titleText, descText, accentColor, callback)
     end)
 end
 
--- 1. Touch Fling (Đánh bật mọi thứ chạm vào nhân vật)
+-- 1. Touch Fling (Fixed: Non-laggy touch velocity burst)
 local _G_TouchFling = false
-AddOtherToggle("💥 Touch Fling (Đánh bật mọi thứ)", "Làm văng bất cứ ai hoặc vật gì chạm vào bạn.", Color3.fromRGB(255, 50, 50), function(state)
+AddOtherToggle("💥 Touch Fling (Đánh bật mọi thứ)", "Làm văng bất cứ ai chạm vào nhân vật mà không giật lag.", Color3.fromRGB(255, 50, 50), function(state)
     _G_TouchFling = state
     task.spawn(function()
+        local bv, bg
         while _G_TouchFling do
             RunService.RenderStepped:Wait()
             pcall(function()
                 local char = LocalPlayer.Character
                 if char and char:FindFirstChild("HumanoidRootPart") then
                     local hrp = char.HumanoidRootPart
-                    local vel = hrp.AssemblyLinearVelocity
-                    hrp.AssemblyLinearVelocity = Vector3.new(99999, 99999, 99999)
-                    RunService.RenderStepped:Wait()
-                    hrp.AssemblyLinearVelocity = vel
+                    for _, p in pairs(Players:GetPlayers()) do
+                        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                            local targetHrp = p.Character.HumanoidRootPart
+                            if (hrp.Position - targetHrp.Position).Magnitude < 4 then
+                                targetHrp.AssemblyLinearVelocity = Vector3.new(0, 9999, 0) + (hrp.CFrame.LookVector * 5000)
+                            end
+                        end
+                    end
                 end
             end)
-            task.wait(0.1)
         end
     end)
 end)
@@ -528,7 +532,7 @@ AddOtherToggle("🎯 Universal Closest Aimbot", "Tự động hướng tâm nhì
                         
                         if humanoid and rootPart and humanoid.Health > 0 then
                             local isPlayer = Players:GetPlayerFromCharacter(obj)
-                            if isPlayer or obj.Parent == Workspace or obj.Parent.Name:lower().find(obj.Parent.Name, "enemy") then
+                            if isPlayer or obj.Parent == Workspace then
                                 local dist = (rootPart.Position - myPos).Magnitude
                                 if dist < shortestDist then
                                     shortestDist = dist
@@ -547,34 +551,25 @@ AddOtherToggle("🎯 Universal Closest Aimbot", "Tự động hướng tâm nhì
     end)
 end)
 
--- 3. Anti-Fling Protection
+-- 3. Anti-Fling Protection (Fixed: Safe velocity clamping, no jump/movement block)
 local _G_AntiFling = false
-AddOtherToggle("🛡️ Anti-Fling Protection", "Chống bị văng/đánh bật bởi các script khác.", Color3.fromRGB(255, 120, 0), function(state)
+AddOtherToggle("🛡️ Anti-Fling Protection", "Chống bị văng/đánh bật bởi các script khác mà không kẹt phím nhảy.", Color3.fromRGB(255, 120, 0), function(state)
     _G_AntiFling = state
     task.spawn(function()
-        local connection
-        if _G_AntiFling then
-            connection = RunService.Stepped:Connect(function()
-                if not _G_AntiFling then
-                    if connection then connection:Disconnect() end
-                    return
-                end
-                pcall(function()
-                    local char = LocalPlayer.Character
-                    if char then
-                        for _, part in pairs(char:GetDescendants()) do
-                            if part:IsA("BasePart") then
-                                part.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                                part.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-                            end
-                        end
+        while _G_AntiFling do
+            RunService.Stepped:Wait()
+            pcall(function()
+                local char = LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    local hrp = char.HumanoidRootPart
+                    -- Chỉ chặn vận tốc bay vô cực (fling), giữ nguyên lực nhảy và đi bộ
+                    if hrp.AssemblyLinearVelocity.Magnitude > 300 then
+                        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
                     end
-                end)
+                end
             end)
-        else
-            if connection then connection:Disconnect() end
         end
     end)
 end)
 
-print("[Furina Hub v3.1] Loaded successfully with Fix Lag & Other tabs!")
+print("[Furina Hub v3.2] Loaded successfully with Fixed Touch Fling & Anti-Fling!")
