@@ -1,6 +1,6 @@
 -- ==============================================================================
--- [ROBLOX LUAU UNC-COMPLIANT: FURINA HUB - ULTIMATE DASHBOARD v3.4]
--- God-Tier Fling, Bulletproof Anti-Fling, Advanced Aimbot & Collapsible Quick Menu
+-- [ROBLOX LUAU UNC-COMPLIANT: FURINA HUB - ULTIMATE DASHBOARD v3.7]
+-- Invisible Shield, Anti-Die, Ultra Map Cleaner, Anti-Fling, Aimbot & Quick Menu
 -- ==============================================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -15,14 +15,14 @@ local LocalPlayer = Players.LocalPlayer
 local ParentGui = (gethui and gethui()) or CoreGui or LocalPlayer:WaitForChild("PlayerGui")
 
 -- 1. IDEMPOTENT CLEANUP
-local guiName = "FurinaHub_v34"
+local guiName = "FurinaHub_v37"
 if ParentGui:FindFirstChild(guiName) then
     ParentGui[guiName]:Destroy()
 end
 
 -- 2. ROBUST ASSET PIPELINE (Furina Theme Asset)
 local imageUrl = "https://zaygip.vercel.app/api/chat?action=raw_image&id=0602157cbd40b833f65d66c4ddd8f943"
-local filename = "furina_hub_v34.png"
+local filename = "furina_hub_v37.png"
 local getAsset = getcustomasset or getsynasset
 local assetPath = ""
 
@@ -113,7 +113,7 @@ ToggleStroke.Color = Color3.fromRGB(0, 190, 255)
 ToggleStroke.Thickness = 2.5
 ToggleStroke.Parent = ToggleBtn
 
--- Main Window (Giao diện chính v3.4)
+-- Main Window (Giao diện chính v3.7)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 560, 0, 380)
@@ -168,7 +168,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -100, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "💧 FURINA HUB | Ultimate Dashboard v3.4"
+Title.Text = "💧 FURINA HUB | Ultimate Dashboard v3.7"
 Title.TextColor3 = Color3.fromRGB(220, 240, 255)
 Title.TextSize = 14
 Title.Font = Enum.Font.GothamBold
@@ -426,8 +426,30 @@ AddLagButton("💥 Chế độ 3: Fix Lag Mạnh (Potato)", "Xóa toàn bộ hi�
     end)
 end)
 
+-- Chế độ 4: Ultra Fix Lag (Xóa map, giữ NPC & Players)
+AddLagButton("🌌 Chế độ 4: Ultra Fix Lag (Xóa map, giữ NPC)", "Xóa toàn bộ map/cảnh vật thừa, chỉ giữ lại nhân vật và NPC.", Color3.fromRGB(150, 50, 250), function()
+    pcall(function()
+        for _, obj in pairs(Workspace:GetChildren()) do
+            if obj ~= Camera and not obj:IsA("Terrain") then
+                local hasHumanoid = obj:FindFirstChildOfClass("Humanoid") or obj:FindFirstChildWhichIsA("Humanoid", true)
+                local isPlayerChar = false
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p.Character == obj then
+                        isPlayerChar = true
+                        break
+                    end
+                end
+                if not hasHumanoid and not isPlayerChar then
+                    obj:Destroy()
+                end
+            end
+        end
+        print("[Furina Hub] Ultra Fix Lag Applied (Map Cleared, NPCs Kept)!")
+    end)
+end)
 
--- --- TAB 2: OTHER (God Fling, Bulletproof Anti-Fling, Advanced Aimbot & Collapsible Quick Menu) ---
+
+-- --- TAB 2: OTHER (Invisible Shield, Anti-Die, Anti-Fling, Aimbot & Quick Menu) ---
 local function AddOtherToggle(parentPage, titleText, descText, accentColor, callback)
     local card = Instance.new("TextButton")
     card.Size = UDim2.new(1, 0, 0, 52)
@@ -492,23 +514,38 @@ local AimbotConfig = {
     TeamCheck = true
 }
 
--- 1. God-Tier Touch Fling (Max Power)
-local _G_TouchFling = false
-AddOtherToggle(otherTab, "💥 God Touch Fling (Đánh bật cực mạnh)", "Hất văng bất cứ ai chạm vào bạn ngay lập tức với lực cực đại.", Color3.fromRGB(255, 50, 50), function(state)
-    _G_TouchFling = state
+-- MỚI: Invisible Forcefield Shield (Khiên vô hình bảo vệ nhân vật)
+local _G_InvisibleShield = false
+AddOtherToggle(otherTab, "🛡️ Invisible Forcefield Shield", "Tạo lớp khiên vô hình đẩy lùi mọi người chơi và vật thể lại gần.", Color3.fromRGB(0, 200, 255), function(state)
+    _G_InvisibleShield = state
     task.spawn(function()
-        while _G_TouchFling do
+        while _G_InvisibleShield do
             RunService.RenderStepped:Wait()
             pcall(function()
                 local char = LocalPlayer.Character
                 if char and char:FindFirstChild("HumanoidRootPart") then
-                    local hrp = char.HumanoidRootPart
-                    hrp.AssemblyAngularVelocity = Vector3.new(0, 99999, 0)
+                    local myPos = char.HumanoidRootPart.Position
+                    local shieldRadius = 14 -- Bán kính khiên bảo vệ
+                    
+                    -- Đẩy lùi người chơi khác
                     for _, p in pairs(Players:GetPlayers()) do
                         if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
                             local targetHrp = p.Character.HumanoidRootPart
-                            if (hrp.Position - targetHrp.Position).Magnitude < 6 then
-                                targetHrp.AssemblyLinearVelocity = Vector3.new(0, 9999, 0) + (hrp.CFrame.LookVector * 9999)
+                            local dist = (targetHrp.Position - myPos).Magnitude
+                            if dist < shieldRadius then
+                                local dir = (targetHrp.Position - myPos).Unit
+                                targetHrp.AssemblyLinearVelocity = dir * 60 + Vector3.new(0, 15, 0)
+                            end
+                        end
+                    end
+                    
+                    -- Đẩy lùi các vật thể/parts động trong workspace
+                    for _, obj in pairs(Workspace:GetDescendants()) do
+                        if obj:IsA("BasePart") and not obj.Anchored and not obj:IsDescendantOf(char) then
+                            local dist = (obj.Position - myPos).Magnitude
+                            if dist < shieldRadius then
+                                local dir = (obj.Position - myPos).Unit
+                                obj.AssemblyLinearVelocity = dir * 50
                             end
                         end
                     end
@@ -518,9 +555,30 @@ AddOtherToggle(otherTab, "💥 God Touch Fling (Đánh bật cực mạnh)", "H�
     end)
 end)
 
--- 2. Bulletproof Anti-Fling Protection
+-- Anti-Die (Bất tử tuyệt đối)
+local _G_AntiDie = false
+AddOtherToggle(otherTab, "💖 Anti-Die (Bất tử không bao giờ chết)", "Giữ máu luôn đầy, nhân vật không thể chết dưới mọi hình thức.", Color3.fromRGB(0, 255, 150), function(state)
+    _G_AntiDie = state
+    task.spawn(function()
+        while _G_AntiDie do
+            RunService.RenderStepped:Wait()
+            pcall(function()
+                local char = LocalPlayer.Character
+                if char then
+                    local hum = char:FindFirstChildOfClass("Humanoid")
+                    if hum then
+                        hum.Health = hum.MaxHealth
+                        hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+                    end
+                end
+            end)
+        end
+    end)
+end)
+
+-- Impenetrable Anti-Fling Protection
 local _G_AntiFling = false
-AddOtherToggle(otherTab, "🛡️ Bulletproof Anti-Fling", "Bảo vệ tuyệt đối, chống văng bởi script khác mà không kẹt phím.", Color3.fromRGB(255, 120, 0), function(state)
+AddOtherToggle(otherTab, "🛡️ Impenetrable Anti-Fling", "Chống văng tuyệt đối, vô hiệu hóa lực va chạm và fling từ script khác.", Color3.fromRGB(255, 120, 0), function(state)
     _G_AntiFling = state
     task.spawn(function()
         while _G_AntiFling do
@@ -529,9 +587,18 @@ AddOtherToggle(otherTab, "🛡️ Bulletproof Anti-Fling", "Bảo vệ tuyệt �
                 local char = LocalPlayer.Character
                 if char and char:FindFirstChild("HumanoidRootPart") then
                     local hrp = char.HumanoidRootPart
-                    if hrp.AssemblyLinearVelocity.Magnitude > 200 or hrp.AssemblyAngularVelocity.Magnitude > 200 then
+                    if hrp.AssemblyLinearVelocity.Magnitude > 80 or hrp.AssemblyAngularVelocity.Magnitude > 50 then
                         hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
                         hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                    end
+                    for _, p in pairs(Players:GetPlayers()) do
+                        if p ~= LocalPlayer and p.Character then
+                            for _, part in pairs(p.Character:GetDescendants()) do
+                                if part:IsA("BasePart") then
+                                    part.CanCollide = false
+                                end
+                            end
+                        end
                     end
                 end
             end)
@@ -539,7 +606,7 @@ AddOtherToggle(otherTab, "🛡️ Bulletproof Anti-Fling", "Bảo vệ tuyệt �
     end)
 end)
 
--- 3. Advanced FPS Aimbot (Team Check & Extended Range)
+-- Advanced FPS Aimbot (Team Check & Extended Range)
 AddOtherToggle(otherTab, "🎯 Advanced FPS Aimbot", "Tâm ngắm tầm xa thông minh, tự động phân biệt địch và đồng đội.", Color3.fromRGB(0, 180, 255), function(state)
     AimbotConfig.Enabled = state
     task.spawn(function()
@@ -583,7 +650,7 @@ AddOtherToggle(otherTab, "🎯 Advanced FPS Aimbot", "Tâm ngắm tầm xa thôn
     end)
 end)
 
--- 4. Quick Settings Button (Mở cửa sổ cấu hình nhanh Aimbot)
+-- Quick Settings Button (Mở cửa sổ cấu hình nhanh Aimbot)
 local QuickSettingsBtn = Instance.new("TextButton")
 QuickSettingsBtn.Size = UDim2.new(1, 0, 0, 42)
 QuickSettingsBtn.BackgroundColor3 = Color3.fromRGB(25, 35, 55)
@@ -760,4 +827,4 @@ end)
 
 MakeDraggable(WinTopBar, QuickWindow)
 
-print("[Furina Hub v3.4] Loaded successfully with Collapsible Quick Config Menu!")
+print("[Furina Hub v3.7] Loaded successfully with Invisible Shield, Anti-Die & Ultra Fix Lag!")
