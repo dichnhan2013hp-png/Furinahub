@@ -1,6 +1,6 @@
 -- ==============================================================================
--- [ROBLOX LUAU UNC-COMPLIANT: FURINA HUB - ULTIMATE DASHBOARD v3.9]
--- Official Furina Chibi Theme Asset, 200+ FPS, Pro Aimbot, God Anti-Fling & Lag Fix
+-- [ROBLOX LUAU UNC-COMPLIANT: FURINA HUB - ULTIMATE DASHBOARD v3.10]
+-- Fixed Image Loading & Glassmorphism Gradient Fallback, 200+ FPS, Pro Aimbot
 -- ==============================================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -15,16 +15,16 @@ local LocalPlayer = Players.LocalPlayer
 local ParentGui = (gethui and gethui()) or CoreGui or LocalPlayer:WaitForChild("PlayerGui")
 
 -- 1. IDEMPOTENT CLEANUP
-local guiName = "FurinaHub_v39"
+local guiName = "FurinaHub_v310"
 if ParentGui:FindFirstChild(guiName) then
     ParentGui[guiName]:Destroy()
 end
 
--- 2. ROBUST ASSET PIPELINE (Official Furina Chibi Image Loader)
+-- 2. ROBUST ASSET PIPELINE (Image Loader with Safe Fallback)
 local imageUrl = "https://zaygip.vercel.app/api/chat?action=raw_image&id=1ff7dd72-ca4b-4b15-9bc6-378aa966b45a"
-local filename = "furina_chibi_official.png"
+local filename = "furina_chibi_v310.png"
 local getAsset = getcustomasset or getsynasset
-local assetPath = "rbxassetid://0" -- Fallback mặc định an toàn
+local assetPath = ""
 
 if writefile and readfile and isfile and getAsset then
     pcall(function()
@@ -93,13 +93,13 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Floating Toggle Button (Nút mở/đóng hình Chibi Furina)
+-- Floating Toggle Button (Nút mở/đóng menu)
 local ToggleBtn = Instance.new("ImageButton")
 ToggleBtn.Name = "ToggleBtn"
 ToggleBtn.Size = UDim2.new(0, 56, 0, 56)
 ToggleBtn.Position = UDim2.new(0, 20, 0, 100)
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(15, 20, 35)
-ToggleBtn.Image = assetPath
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 35, 60)
+ToggleBtn.Image = assetPath ~= "" and assetPath or ""
 ToggleBtn.ScaleType = Enum.ScaleType.Crop
 ToggleBtn.ZIndex = 100
 ToggleBtn.Parent = ScreenGui
@@ -113,13 +113,13 @@ ToggleStroke.Color = Color3.fromRGB(0, 190, 255)
 ToggleStroke.Thickness = 2.5
 ToggleStroke.Parent = ToggleBtn
 
--- Main Window (Giao diện chính v3.9)
+-- Main Window (Giao diện chính v3.10)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 560, 0, 380)
 MainFrame.Position = UDim2.new(0.5, -280, 0.5, -190)
-MainFrame.BackgroundColor3 = Color3.fromRGB(10, 13, 22)
-MainFrame.BackgroundTransparency = 1
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 18, 30)
+MainFrame.BackgroundTransparency = 0.15
 MainFrame.ClipsDescendants = true
 MainFrame.Visible = true
 MainFrame.Parent = ScreenGui
@@ -128,23 +128,40 @@ local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 14)
 MainCorner.Parent = MainFrame
 
--- Z-INDEX LAYER 1: Background Image (Official Chibi Furina)
-local BgImage = Instance.new("ImageLabel")
-BgImage.Size = UDim2.new(1, 0, 1, 0)
-BgImage.Image = assetPath
-BgImage.ScaleType = Enum.ScaleType.Crop
-BgImage.ZIndex = 1
-BgImage.Parent = MainFrame
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(0, 160, 255)
+MainStroke.Transparency = 0.4
+MainStroke.Thickness = 1.5
+MainStroke.Parent = MainFrame
 
-local BgCorner = Instance.new("UICorner")
-BgCorner.CornerRadius = UDim.new(0, 14)
-BgCorner.Parent = BgImage
+-- Z-INDEX LAYER 1: Background Image (If available) or Gorgeous Glassmorphism Gradient Fallback
+if assetPath ~= "" then
+    local BgImage = Instance.new("ImageLabel")
+    BgImage.Size = UDim2.new(1, 0, 1, 0)
+    BgImage.Image = assetPath
+    BgImage.ScaleType = Enum.ScaleType.Crop
+    BgImage.BackgroundTransparency = 1
+    BgImage.ZIndex = 1
+    BgImage.Parent = MainFrame
 
--- Z-INDEX LAYER 2: Dark Overlay
+    local BgCorner = Instance.new("UICorner")
+    BgCorner.CornerRadius = UDim.new(0, 14)
+    BgCorner.Parent = BgImage
+end
+
+local BgGradient = Instance.new("UIGradient")
+BgGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 25, 45)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 12, 20))
+})
+BgGradient.Rotation = 45
+BgGradient.Parent = MainFrame
+
+-- Z-INDEX LAYER 2: Dark Overlay for Readability
 local Overlay = Instance.new("Frame")
 Overlay.Size = UDim2.new(1, 0, 1, 0)
-Overlay.BackgroundColor3 = Color3.fromRGB(6, 8, 15)
-Overlay.BackgroundTransparency = 0.4
+Overlay.BackgroundColor3 = Color3.fromRGB(8, 10, 18)
+Overlay.BackgroundTransparency = 0.5
 Overlay.ZIndex = 2
 Overlay.Parent = MainFrame
 
@@ -155,8 +172,8 @@ OverlayCorner.Parent = Overlay
 -- Z-INDEX LAYER 3: TopBar
 local TopBar = Instance.new("Frame")
 TopBar.Size = UDim2.new(1, 0, 0, 42)
-TopBar.BackgroundColor3 = Color3.fromRGB(15, 20, 32)
-TopBar.BackgroundTransparency = 0.25
+TopBar.BackgroundColor3 = Color3.fromRGB(20, 26, 42)
+TopBar.BackgroundTransparency = 0.2
 TopBar.ZIndex = 3
 TopBar.Parent = MainFrame
 
@@ -168,7 +185,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -100, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "💧 FURINA HUB | Ultimate Dashboard v3.9"
+Title.Text = "💧 FURINA HUB | Ultimate Dashboard v3.10"
 Title.TextColor3 = Color3.fromRGB(220, 240, 255)
 Title.TextSize = 14
 Title.Font = Enum.Font.GothamBold
@@ -196,7 +213,7 @@ CloseCorner.Parent = CloseBtn
 local Sidebar = Instance.new("Frame")
 Sidebar.Size = UDim2.new(0, 140, 1, -54)
 Sidebar.Position = UDim2.new(0, 8, 0, 46)
-Sidebar.BackgroundColor3 = Color3.fromRGB(14, 18, 30)
+Sidebar.BackgroundColor3 = Color3.fromRGB(18, 24, 38)
 Sidebar.BackgroundTransparency = 0.4
 Sidebar.ZIndex = 3
 Sidebar.Parent = MainFrame
@@ -227,7 +244,7 @@ ContentContainer.Parent = MainFrame
 -- 4. DRAGGABLE LOGIC (Cross-Platform)
 local function MakeDraggable(obj, targetFrame)
     local target = targetFrame or obj
-    local dragging, dragInput, dragStart, startPos
+    local dragging, dragStart, startPos
     obj.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
@@ -266,7 +283,7 @@ local activeTab = nil
 local function CreateTab(name)
     local tabBtn = Instance.new("TextButton")
     tabBtn.Size = UDim2.new(1, 0, 0, 36)
-    tabBtn.BackgroundColor3 = Color3.fromRGB(22, 28, 45)
+    tabBtn.BackgroundColor3 = Color3.fromRGB(25, 32, 50)
     tabBtn.BackgroundTransparency = 0.5
     tabBtn.Text = "  " .. name
     tabBtn.TextColor3 = Color3.fromRGB(170, 190, 215)
@@ -305,7 +322,7 @@ local function CreateTab(name)
     tabBtn.MouseButton1Click:Connect(function()
         for _, t in pairs(tabs) do
             t.page.Visible = false
-            t.btn.BackgroundColor3 = Color3.fromRGB(22, 28, 45)
+            t.btn.BackgroundColor3 = Color3.fromRGB(25, 32, 50)
             t.btn.TextColor3 = Color3.fromRGB(170, 190, 215)
         end
         page.Visible = true
@@ -332,7 +349,7 @@ local otherTab = CreateTab("Other")
 local function AddLagButton(title, desc, color, callback)
     local card = Instance.new("TextButton")
     card.Size = UDim2.new(1, 0, 0, 52)
-    card.BackgroundColor3 = Color3.fromRGB(18, 24, 38)
+    card.BackgroundColor3 = Color3.fromRGB(20, 26, 42)
     card.BackgroundTransparency = 0.4
     card.Text = ""
     card.ZIndex = 3
@@ -454,7 +471,7 @@ end)
 local function AddOtherToggle(parentPage, titleText, descText, accentColor, callback)
     local card = Instance.new("TextButton")
     card.Size = UDim2.new(1, 0, 0, 52)
-    card.BackgroundColor3 = Color3.fromRGB(18, 24, 38)
+    card.BackgroundColor3 = Color3.fromRGB(20, 26, 42)
     card.BackgroundTransparency = 0.4
     card.Text = ""
     card.ZIndex = 3
@@ -797,4 +814,4 @@ end)
 
 MakeDraggable(WinTopBar, QuickWindow)
 
-print("[Furina Hub v3.9] Loaded successfully with Official Chibi Furina Image & Uncapped FPS!")
+print("[Furina Hub v3.10] Loaded successfully with Glassmorphism Fallback & Uncapped FPS!")
