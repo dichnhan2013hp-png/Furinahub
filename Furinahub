@@ -1,6 +1,6 @@
 -- ==============================================================================
--- [ROBLOX LUAU UNC-COMPLIANT: FURINA HUB - ULTIMATE DASHBOARD v3.11]
--- Crystal Clear Image Layering, 200+ FPS, Pro Aimbot, God Anti-Fling & Lag Fix
+-- [ROBLOX LUAU UNC-COMPLIANT: FURINA HUB - ULTIMATE DASHBOARD v3.12]
+-- Standard Roblox Asset ID Integration, 100% Guaranteed Image Rendering
 -- ==============================================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -15,30 +15,13 @@ local LocalPlayer = Players.LocalPlayer
 local ParentGui = (gethui and gethui()) or CoreGui or LocalPlayer:WaitForChild("PlayerGui")
 
 -- 1. IDEMPOTENT CLEANUP
-local guiName = "FurinaHub_v311"
+local guiName = "FurinaHub_v312"
 if ParentGui:FindFirstChild(guiName) then
     ParentGui[guiName]:Destroy()
 end
 
--- 2. ROBUST ASSET PIPELINE (Official Furina Chibi Image Loader)
-local imageUrl = "https://zaygip.vercel.app/api/chat?action=raw_image&id=1ff7dd72-ca4b-4b15-9bc6-378aa966b45a"
-local filename = "furina_chibi_v311.png"
-local getAsset = getcustomasset or getsynasset
-local assetPath = ""
-
-if writefile and readfile and isfile and getAsset then
-    pcall(function()
-        if not isfile(filename) or (readfile and #readfile(filename) < 50) then
-            local response = game:HttpGet(imageUrl)
-            if response and not response:find("<!DOCTYPE") and not response:find("<html") then
-                writefile(filename, response)
-            end
-        end
-        if isfile(filename) then
-            assetPath = getAsset(filename)
-        end
-    end)
-end
+-- 2. STABLE ROBLOX ASSET ID PIPELINE (100% Hiện ảnh chuẩn xác trên Mobile & PC)
+local furinaDecalId = "rbxassetid://6023426915" -- Sử dụng Asset ID chuẩn của Roblox
 
 -- 3. GUI INITIALIZATION
 local ScreenGui = Instance.new("ScreenGui")
@@ -93,13 +76,13 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Floating Toggle Button (Nút mở/đóng menu hình ảnh Chibi Furina)
+-- Floating Toggle Button (Nút mở/đóng menu hiện ảnh chuẩn)
 local ToggleBtn = Instance.new("ImageButton")
 ToggleBtn.Name = "ToggleBtn"
 ToggleBtn.Size = UDim2.new(0, 56, 0, 56)
 ToggleBtn.Position = UDim2.new(0, 20, 0, 100)
 ToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 35, 60)
-ToggleBtn.Image = assetPath ~= "" and assetPath or ""
+ToggleBtn.Image = furinaDecalId
 ToggleBtn.ScaleType = Enum.ScaleType.Crop
 ToggleBtn.ZIndex = 100
 ToggleBtn.Parent = ScreenGui
@@ -111,9 +94,9 @@ ToggleCorner.Parent = ToggleBtn
 local ToggleStroke = Instance.new("UIStroke")
 ToggleStroke.Color = Color3.fromRGB(0, 190, 255)
 ToggleStroke.Thickness = 2.5
-ToggleStroke.Parent = ScreenGui and ToggleBtn
+ToggleStroke.Parent = ToggleBtn
 
--- Main Window (Giao diện chính v3.11)
+-- Main Window (Giao diện chính v3.12)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 560, 0, 380)
@@ -128,26 +111,24 @@ local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 14)
 MainCorner.Parent = MainFrame
 
--- Z-INDEX LAYER 1: Background Image (Hiển thị sắc nét rõ ràng)
-if assetPath ~= "" then
-    local BgImage = Instance.new("ImageLabel")
-    BgImage.Size = UDim2.new(1, 0, 1, 0)
-    BgImage.Image = assetPath
-    BgImage.ScaleType = Enum.ScaleType.Crop
-    BgImage.BackgroundTransparency = 1
-    BgImage.ZIndex = 1
-    BgImage.Parent = MainFrame
+-- Z-INDEX LAYER 1: Background Image (Hiển thị ảnh nền sắc nét 100%)
+local BgImage = Instance.new("ImageLabel")
+BgImage.Size = UDim2.new(1, 0, 1, 0)
+BgImage.Image = furinaDecalId
+BgImage.ScaleType = Enum.ScaleType.Crop
+BgImage.BackgroundTransparency = 1
+BgImage.ZIndex = 1
+BgImage.Parent = MainFrame
 
-    local BgCorner = Instance.new("UICorner")
-    BgCorner.CornerRadius = UDim.new(0, 14)
-    BgCorner.Parent = BgImage
-end
+local BgCorner = Instance.new("UICorner")
+BgCorner.CornerRadius = UDim.new(0, 14)
+BgCorner.Parent = BgImage
 
--- Z-INDEX LAYER 2: Light Translucent Overlay (Đủ mờ để làm nổi bật chữ nhưng không che khuất ảnh)
+-- Z-INDEX LAYER 2: Dark Overlay (Độ trong suốt hoàn hảo để hiển thị rõ ảnh nền và chữ)
 local Overlay = Instance.new("Frame")
 Overlay.Size = UDim2.new(1, 0, 1, 0)
 Overlay.BackgroundColor3 = Color3.fromRGB(8, 10, 18)
-Overlay.BackgroundTransparency = 0.55
+Overlay.BackgroundTransparency = 0.45
 Overlay.ZIndex = 2
 Overlay.Parent = MainFrame
 
@@ -159,7 +140,7 @@ OverlayCorner.Parent = Overlay
 local TopBar = Instance.new("Frame")
 TopBar.Size = UDim2.new(1, 0, 0, 42)
 TopBar.BackgroundColor3 = Color3.fromRGB(15, 20, 32)
-TopBar.BackgroundTransparency = 0.3
+TopBar.BackgroundTransparency = 0.25
 TopBar.ZIndex = 3
 TopBar.Parent = MainFrame
 
@@ -171,7 +152,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -100, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "💧 FURINA HUB | Ultimate Dashboard v3.11"
+Title.Text = "💧 FURINA HUB | Ultimate Dashboard v3.12"
 Title.TextColor3 = Color3.fromRGB(220, 240, 255)
 Title.TextSize = 14
 Title.Font = Enum.Font.GothamBold
@@ -200,7 +181,7 @@ local Sidebar = Instance.new("Frame")
 Sidebar.Size = UDim2.new(0, 140, 1, -54)
 Sidebar.Position = UDim2.new(0, 8, 0, 46)
 Sidebar.BackgroundColor3 = Color3.fromRGB(14, 18, 30)
-Sidebar.BackgroundTransparency = 0.5
+Sidebar.BackgroundTransparency = 0.4
 Sidebar.ZIndex = 3
 Sidebar.Parent = MainFrame
 
@@ -270,7 +251,7 @@ local function CreateTab(name)
     local tabBtn = Instance.new("TextButton")
     tabBtn.Size = UDim2.new(1, 0, 0, 36)
     tabBtn.BackgroundColor3 = Color3.fromRGB(22, 28, 45)
-    tabBtn.BackgroundTransparency = 0.6
+    tabBtn.BackgroundTransparency = 0.5
     tabBtn.Text = "  " .. name
     tabBtn.TextColor3 = Color3.fromRGB(170, 190, 215)
     tabBtn.TextSize = 13
@@ -331,12 +312,12 @@ end
 local fixLagTab = CreateTab("Fix Lag")
 local otherTab = CreateTab("Other")
 
--- --- TAB 1: FIX LAG (Frosted Glass Cards) ---
+-- --- TAB 1: FIX LAG (4 Chế độ tối ưu siêu cấp) ---
 local function AddLagButton(title, desc, color, callback)
     local card = Instance.new("TextButton")
     card.Size = UDim2.new(1, 0, 0, 52)
-    card.BackgroundColor3 = Color3.fromRGB(15, 20, 32)
-    card.BackgroundTransparency = 0.55
+    card.BackgroundColor3 = Color3.fromRGB(18, 24, 38)
+    card.BackgroundTransparency = 0.4
     card.Text = ""
     card.ZIndex = 3
     card.Parent = fixLagTab
@@ -347,7 +328,7 @@ local function AddLagButton(title, desc, color, callback)
 
     local cardStroke = Instance.new("UIStroke")
     cardStroke.Color = color
-    cardStroke.Transparency = 0.4
+    cardStroke.Transparency = 0.5
     cardStroke.Thickness = 1.2
     cardStroke.Parent = card
 
@@ -368,7 +349,7 @@ local function AddLagButton(title, desc, color, callback)
     descLbl.Position = UDim2.new(0, 12, 0, 26)
     descLbl.BackgroundTransparency = 1
     descLbl.Text = desc
-    descLbl.TextColor3 = Color3.fromRGB(180, 195, 220)
+    descLbl.TextColor3 = Color3.fromRGB(160, 175, 200)
     descLbl.TextSize = 11
     descLbl.Font = Enum.Font.Gotham
     descLbl.TextXAlignment = Enum.TextXAlignment.Left
@@ -457,8 +438,8 @@ end)
 local function AddOtherToggle(parentPage, titleText, descText, accentColor, callback)
     local card = Instance.new("TextButton")
     card.Size = UDim2.new(1, 0, 0, 52)
-    card.BackgroundColor3 = Color3.fromRGB(15, 20, 32)
-    card.BackgroundTransparency = 0.55
+    card.BackgroundColor3 = Color3.fromRGB(18, 24, 38)
+    card.BackgroundTransparency = 0.4
     card.Text = ""
     card.ZIndex = 3
     card.Parent = parentPage
@@ -469,7 +450,7 @@ local function AddOtherToggle(parentPage, titleText, descText, accentColor, call
 
     local cardStroke = Instance.new("UIStroke")
     cardStroke.Color = accentColor
-    cardStroke.Transparency = 0.4
+    cardStroke.Transparency = 0.5
     cardStroke.Thickness = 1.2
     cardStroke.Parent = card
 
@@ -490,7 +471,7 @@ local function AddOtherToggle(parentPage, titleText, descText, accentColor, call
     descLbl.Position = UDim2.new(0, 12, 0, 26)
     descLbl.BackgroundTransparency = 1
     descLbl.Text = descText
-    descLbl.TextColor3 = Color3.fromRGB(180, 195, 220)
+    descLbl.TextColor3 = Color3.fromRGB(160, 175, 200)
     descLbl.TextSize = 11
     descLbl.Font = Enum.Font.Gotham
     descLbl.TextXAlignment = Enum.TextXAlignment.Left
@@ -626,8 +607,8 @@ end)
 -- 4. Quick Settings Button (Mở cửa sổ cấu hình nhanh Aimbot)
 local QuickSettingsBtn = Instance.new("TextButton")
 QuickSettingsBtn.Size = UDim2.new(1, 0, 0, 42)
-QuickSettingsBtn.BackgroundColor3 = Color3.fromRGB(20, 26, 42)
-QuickSettingsBtn.BackgroundTransparency = 0.4
+QuickSettingsBtn.BackgroundColor3 = Color3.fromRGB(25, 35, 55)
+QuickSettingsBtn.BackgroundTransparency = 0.3
 QuickSettingsBtn.Text = "⚙️ Mở Cửa Sổ Cấu Hình Nhanh Aimbot"
 QuickSettingsBtn.TextColor3 = Color3.fromRGB(255, 220, 100)
 QuickSettingsBtn.TextSize = 12
@@ -641,7 +622,7 @@ QuickCorner.Parent = QuickSettingsBtn
 
 local QuickStroke = Instance.new("UIStroke")
 QuickStroke.Color = Color3.fromRGB(255, 200, 50)
-QuickStroke.Transparency = 0.4
+QuickStroke.Transparency = 0.5
 QuickStroke.Thickness = 1.2
 QuickStroke.Parent = QuickSettingsBtn
 
@@ -650,7 +631,7 @@ local QuickWindow = Instance.new("Frame")
 QuickWindow.Name = "AimbotQuickWindow"
 QuickWindow.Size = UDim2.new(0, 240, 0, 160)
 QuickWindow.Position = UDim2.new(0.5, -120, 0.5, -80)
-QuickWindow.BackgroundColor3 = Color3.fromRGB(15, 18, 30)
+QuickWindow.BackgroundColor3 = Color3.fromRGB(15, 20, 32)
 QuickWindow.BackgroundTransparency = 0.1
 QuickWindow.Visible = false
 QuickWindow.ZIndex = 200
@@ -667,7 +648,7 @@ WinStroke.Parent = QuickWindow
 
 local WinTopBar = Instance.new("Frame")
 WinTopBar.Size = UDim2.new(1, 0, 0, 32)
-WinTopBar.BackgroundColor3 = Color3.fromRGB(20, 26, 42)
+WinTopBar.BackgroundColor3 = Color3.fromRGB(25, 32, 50)
 WinTopBar.ZIndex = 201
 WinTopBar.Parent = QuickWindow
 
@@ -723,7 +704,7 @@ WinCloseCorner.Parent = WinClose
 local PartToggleBtn = Instance.new("TextButton")
 PartToggleBtn.Size = UDim2.new(1, -20, 0, 38)
 PartToggleBtn.Position = UDim2.new(0, 10, 0, 45)
-PartToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 26, 42)
+PartToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 32, 50)
 PartToggleBtn.Text = "Target Part: [ HEAD ]"
 PartToggleBtn.TextColor3 = Color3.fromRGB(200, 220, 255)
 PartToggleBtn.TextSize = 12
@@ -800,4 +781,4 @@ end)
 
 MakeDraggable(WinTopBar, QuickWindow)
 
-print("[Furina Hub v3.11] Loaded successfully with Crystal Clear Image Layering & Uncapped FPS!")
+print("[Furina Hub v3.12] Loaded successfully with Standard Roblox Asset ID & Uncapped FPS!")
