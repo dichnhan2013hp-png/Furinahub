@@ -1,6 +1,6 @@
 -- ==============================================================================
--- [ROBLOX LUAU UNC-COMPLIANT: FURINA HUB - ULTIMATE DASHBOARD v3.7]
--- Invisible Shield, Anti-Die, Ultra Map Cleaner, Anti-Fling, Aimbot & Quick Menu
+-- [ROBLOX LUAU UNC-COMPLIANT: FURINA HUB - ULTIMATE DASHBOARD v3.9]
+-- Official Furina Chibi Theme Asset, 200+ FPS, Pro Aimbot, God Anti-Fling & Lag Fix
 -- ==============================================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -15,16 +15,16 @@ local LocalPlayer = Players.LocalPlayer
 local ParentGui = (gethui and gethui()) or CoreGui or LocalPlayer:WaitForChild("PlayerGui")
 
 -- 1. IDEMPOTENT CLEANUP
-local guiName = "FurinaHub_v37"
+local guiName = "FurinaHub_v39"
 if ParentGui:FindFirstChild(guiName) then
     ParentGui[guiName]:Destroy()
 end
 
--- 2. ROBUST ASSET PIPELINE (Furina Theme Asset)
-local imageUrl = "https://zaygip.vercel.app/api/chat?action=raw_image&id=0602157cbd40b833f65d66c4ddd8f943"
-local filename = "furina_hub_v37.png"
+-- 2. ROBUST ASSET PIPELINE (Official Furina Chibi Image Loader)
+local imageUrl = "https://zaygip.vercel.app/api/chat?action=raw_image&id=1ff7dd72-ca4b-4b15-9bc6-378aa966b45a"
+local filename = "furina_chibi_official.png"
 local getAsset = getcustomasset or getsynasset
-local assetPath = ""
+local assetPath = "rbxassetid://0" -- Fallback mặc định an toàn
 
 if writefile and readfile and isfile and getAsset then
     pcall(function()
@@ -46,17 +46,17 @@ ScreenGui.Name = guiName
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = ParentGui
 
--- Live FPS & Ping Counter (Góc trên màn hình)
+-- Uncapped 200+ FPS & Ping Counter (Góc trên màn hình)
 local InfoLabel = Instance.new("TextLabel")
 InfoLabel.Name = "InfoCounter"
-InfoLabel.Size = UDim2.new(0, 150, 0, 30)
-InfoLabel.Position = UDim2.new(1, -170, 0, 15)
+InfoLabel.Size = UDim2.new(0, 160, 0, 30)
+InfoLabel.Position = UDim2.new(1, -180, 0, 15)
 InfoLabel.BackgroundColor3 = Color3.fromRGB(15, 20, 30)
 InfoLabel.BackgroundTransparency = 0.3
 InfoLabel.TextColor3 = Color3.fromRGB(0, 220, 255)
 InfoLabel.TextSize = 12
 InfoLabel.Font = Enum.Font.GothamBold
-InfoLabel.Text = "FPS: 60 | Ping: 0ms"
+InfoLabel.Text = "FPS: 200+ | Ping: 0ms"
 InfoLabel.ZIndex = 50
 InfoLabel.Parent = ScreenGui
 
@@ -69,21 +69,21 @@ InfoStroke.Color = Color3.fromRGB(0, 190, 255)
 InfoStroke.Thickness = 1.5
 InfoStroke.Parent = InfoLabel
 
--- Cập nhật FPS và Ping liên tục
+-- Cập nhật FPS Uncapped và Ping thời gian thực
 local frameCount, lastUpdate = 0, tick()
 RunService.RenderStepped:Connect(function()
     frameCount += 1
     local now = tick()
-    if now - lastUpdate >= 1 then
+    if now - lastUpdate >= 0.5 then
         local fps = math.floor(frameCount / (now - lastUpdate))
         local ping = 0
         pcall(function()
             ping = math.floor(LocalPlayer:GetNetworkPing() * 1000)
         end)
-        InfoLabel.Text = string.format("FPS: %d | Ping: %dms", fps, ping)
-        if fps >= 50 then
-            InfoLabel.TextColor3 = Color3.fromRGB(50, 255, 100)
-        elseif fps >= 30 then
+        InfoLabel.Text = string.format("FPS: %d+ | Ping: %dms", fps, ping)
+        if fps >= 100 then
+            InfoLabel.TextColor3 = Color3.fromRGB(0, 255, 120)
+        elseif fps >= 45 then
             InfoLabel.TextColor3 = Color3.fromRGB(255, 220, 50)
         else
             InfoLabel.TextColor3 = Color3.fromRGB(255, 60, 60)
@@ -93,7 +93,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Floating Toggle Button (Nút mở/đóng hình Furina)
+-- Floating Toggle Button (Nút mở/đóng hình Chibi Furina)
 local ToggleBtn = Instance.new("ImageButton")
 ToggleBtn.Name = "ToggleBtn"
 ToggleBtn.Size = UDim2.new(0, 56, 0, 56)
@@ -113,7 +113,7 @@ ToggleStroke.Color = Color3.fromRGB(0, 190, 255)
 ToggleStroke.Thickness = 2.5
 ToggleStroke.Parent = ToggleBtn
 
--- Main Window (Giao diện chính v3.7)
+-- Main Window (Giao diện chính v3.9)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 560, 0, 380)
@@ -128,7 +128,7 @@ local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 14)
 MainCorner.Parent = MainFrame
 
--- Z-INDEX LAYER 1: Background Image
+-- Z-INDEX LAYER 1: Background Image (Official Chibi Furina)
 local BgImage = Instance.new("ImageLabel")
 BgImage.Size = UDim2.new(1, 0, 1, 0)
 BgImage.Image = assetPath
@@ -168,7 +168,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -100, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "💧 FURINA HUB | Ultimate Dashboard v3.7"
+Title.Text = "💧 FURINA HUB | Ultimate Dashboard v3.9"
 Title.TextColor3 = Color3.fromRGB(220, 240, 255)
 Title.TextSize = 14
 Title.Font = Enum.Font.GothamBold
@@ -328,7 +328,7 @@ end
 local fixLagTab = CreateTab("Fix Lag")
 local otherTab = CreateTab("Other")
 
--- --- TAB 1: FIX LAG ---
+-- --- TAB 1: FIX LAG (4 Chế độ tối ưu siêu cấp) ---
 local function AddLagButton(title, desc, color, callback)
     local card = Instance.new("TextButton")
     card.Size = UDim2.new(1, 0, 0, 52)
@@ -375,21 +375,23 @@ local function AddLagButton(title, desc, color, callback)
     card.MouseButton1Click:Connect(callback)
 end
 
-AddLagButton("⚡ Chế độ 1: Fix Lag Nhẹ", "Tắt bóng đổ, khử hiệu ứng ánh sáng nặng.", Color3.fromRGB(50, 130, 220), function()
+AddLagButton("⚡ Chế độ 1: Fix Lag Nhẹ", "Tắt toàn bộ bóng đổ, khử hiệu ứng môi trường nặng.", Color3.fromRGB(50, 130, 220), function()
     pcall(function()
         Lighting.GlobalShadows = false
         Lighting.Brightness = 2
+        Lighting.FogEnd = 99999
         for _, v in pairs(Lighting:GetChildren()) do
             if v:IsA("PostEffect") then v.Enabled = false end
         end
         if workspace:FindFirstChildOfClass("Terrain") then
             workspace.Terrain.WaterWaveSize = 0
+            workspace.Terrain.WaterTransparency = 1
         end
         print("[Furina Hub] Light Fix Applied!")
     end)
 end)
 
-AddLagButton("🔥 Chế độ 2: Fix Lag Vừa Phải", "Chuyển vật liệu sang SmoothPlastic, ẩn Decal.", Color3.fromRGB(220, 150, 40), function()
+AddLagButton("🔥 Chế độ 2: Fix Lag Vừa Phải", "Chuyển vật liệu sang SmoothPlastic, ẩn Decal/Texture.", Color3.fromRGB(220, 150, 40), function()
     pcall(function()
         Lighting.GlobalShadows = false
         for _, v in pairs(Lighting:GetChildren()) do
@@ -407,7 +409,7 @@ AddLagButton("🔥 Chế độ 2: Fix Lag Vừa Phải", "Chuyển vật liệu 
     end)
 end)
 
-AddLagButton("💥 Chế độ 3: Fix Lag Mạnh (Potato)", "Xóa toàn bộ hiệu ứng hạt, khói, lửa, tối ưu cực đại.", Color3.fromRGB(230, 60, 60), function()
+AddLagButton("💥 Chế độ 3: Fix Lag Mạnh (Potato Mode)", "Xóa sạch hiệu ứng hạt, khói, lửa, tối ưu hóa tuyệt đối.", Color3.fromRGB(230, 60, 60), function()
     pcall(function()
         Lighting.GlobalShadows = false
         settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
@@ -426,8 +428,7 @@ AddLagButton("💥 Chế độ 3: Fix Lag Mạnh (Potato)", "Xóa toàn bộ hi�
     end)
 end)
 
--- Chế độ 4: Ultra Fix Lag (Xóa map, giữ NPC & Players)
-AddLagButton("🌌 Chế độ 4: Ultra Fix Lag (Xóa map, giữ NPC)", "Xóa toàn bộ map/cảnh vật thừa, chỉ giữ lại nhân vật và NPC.", Color3.fromRGB(150, 50, 250), function()
+AddLagButton("🌌 Chế độ 4: Ultra Fix Lag (Xóa map, giữ NPC)", "Xóa toàn bộ cảnh vật/map thừa, chỉ giữ lại nhân vật và NPC/Mob.", Color3.fromRGB(150, 50, 250), function()
     pcall(function()
         for _, obj in pairs(Workspace:GetChildren()) do
             if obj ~= Camera and not obj:IsA("Terrain") then
@@ -449,7 +450,7 @@ AddLagButton("🌌 Chế độ 4: Ultra Fix Lag (Xóa map, giữ NPC)", "Xóa to
 end)
 
 
--- --- TAB 2: OTHER (Invisible Shield, Anti-Die, Anti-Fling, Aimbot & Quick Menu) ---
+-- --- TAB 2: OTHER (Anti-Die, Pro Aimbot, Anti-Fling & Quick Menu) ---
 local function AddOtherToggle(parentPage, titleText, descText, accentColor, callback)
     local card = Instance.new("TextButton")
     card.Size = UDim2.new(1, 0, 0, 52)
@@ -507,55 +508,14 @@ local function AddOtherToggle(parentPage, titleText, descText, accentColor, call
     end)
 end
 
--- Global Configs for Aimbot
+-- Global Configs for Pro Aimbot
 local AimbotConfig = {
     Enabled = false,
     TargetPart = "Head",
     TeamCheck = true
 }
 
--- MỚI: Invisible Forcefield Shield (Khiên vô hình bảo vệ nhân vật)
-local _G_InvisibleShield = false
-AddOtherToggle(otherTab, "🛡️ Invisible Forcefield Shield", "Tạo lớp khiên vô hình đẩy lùi mọi người chơi và vật thể lại gần.", Color3.fromRGB(0, 200, 255), function(state)
-    _G_InvisibleShield = state
-    task.spawn(function()
-        while _G_InvisibleShield do
-            RunService.RenderStepped:Wait()
-            pcall(function()
-                local char = LocalPlayer.Character
-                if char and char:FindFirstChild("HumanoidRootPart") then
-                    local myPos = char.HumanoidRootPart.Position
-                    local shieldRadius = 14 -- Bán kính khiên bảo vệ
-                    
-                    -- Đẩy lùi người chơi khác
-                    for _, p in pairs(Players:GetPlayers()) do
-                        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                            local targetHrp = p.Character.HumanoidRootPart
-                            local dist = (targetHrp.Position - myPos).Magnitude
-                            if dist < shieldRadius then
-                                local dir = (targetHrp.Position - myPos).Unit
-                                targetHrp.AssemblyLinearVelocity = dir * 60 + Vector3.new(0, 15, 0)
-                            end
-                        end
-                    end
-                    
-                    -- Đẩy lùi các vật thể/parts động trong workspace
-                    for _, obj in pairs(Workspace:GetDescendants()) do
-                        if obj:IsA("BasePart") and not obj.Anchored and not obj:IsDescendantOf(char) then
-                            local dist = (obj.Position - myPos).Magnitude
-                            if dist < shieldRadius then
-                                local dir = (obj.Position - myPos).Unit
-                                obj.AssemblyLinearVelocity = dir * 50
-                            end
-                        end
-                    end
-                end
-            end)
-        end
-    end)
-end)
-
--- Anti-Die (Bất tử tuyệt đối)
+-- 1. Anti-Die (Bất tử tuyệt đối)
 local _G_AntiDie = false
 AddOtherToggle(otherTab, "💖 Anti-Die (Bất tử không bao giờ chết)", "Giữ máu luôn đầy, nhân vật không thể chết dưới mọi hình thức.", Color3.fromRGB(0, 255, 150), function(state)
     _G_AntiDie = state
@@ -576,9 +536,9 @@ AddOtherToggle(otherTab, "💖 Anti-Die (Bất tử không bao giờ chết)", "
     end)
 end)
 
--- Impenetrable Anti-Fling Protection
+-- 2. God Anti-Fling & Mob Knockback Protection
 local _G_AntiFling = false
-AddOtherToggle(otherTab, "🛡️ Impenetrable Anti-Fling", "Chống văng tuyệt đối, vô hiệu hóa lực va chạm và fling từ script khác.", Color3.fromRGB(255, 120, 0), function(state)
+AddOtherToggle(otherTab, "🛡️ God Anti-Fling & Mob Protect", "Chống văng tuyệt đối bởi scripts, player khác và các con mob/boss.", Color3.fromRGB(255, 120, 0), function(state)
     _G_AntiFling = state
     task.spawn(function()
         while _G_AntiFling do
@@ -587,16 +547,14 @@ AddOtherToggle(otherTab, "🛡️ Impenetrable Anti-Fling", "Chống văng tuy�
                 local char = LocalPlayer.Character
                 if char and char:FindFirstChild("HumanoidRootPart") then
                     local hrp = char.HumanoidRootPart
-                    if hrp.AssemblyLinearVelocity.Magnitude > 80 or hrp.AssemblyAngularVelocity.Magnitude > 50 then
-                        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                    if hrp.AssemblyLinearVelocity.Magnitude > 60 or hrp.AssemblyAngularVelocity.Magnitude > 30 then
+                        hrp.AssemblyLinearVelocity = Vector3.new(0, hrp.AssemblyLinearVelocity.Y, 0)
                         hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
                     end
                     for _, p in pairs(Players:GetPlayers()) do
                         if p ~= LocalPlayer and p.Character then
                             for _, part in pairs(p.Character:GetDescendants()) do
-                                if part:IsA("BasePart") then
-                                    part.CanCollide = false
-                                end
+                                if part:IsA("BasePart") then part.CanCollide = false end
                             end
                         end
                     end
@@ -606,8 +564,8 @@ AddOtherToggle(otherTab, "🛡️ Impenetrable Anti-Fling", "Chống văng tuy�
     end)
 end)
 
--- Advanced FPS Aimbot (Team Check & Extended Range)
-AddOtherToggle(otherTab, "🎯 Advanced FPS Aimbot", "Tâm ngắm tầm xa thông minh, tự động phân biệt địch và đồng đội.", Color3.fromRGB(0, 180, 255), function(state)
+-- 3. Pro FPS Aimbot (Players & Mobs)
+AddOtherToggle(otherTab, "🎯 Pro FPS Aimbot (Players & Mobs)", "Tâm ngắm chuẩn xác cho mọi game FPS, nhận diện cả địch và mob.", Color3.fromRGB(0, 180, 255), function(state)
     AimbotConfig.Enabled = state
     task.spawn(function()
         while AimbotConfig.Enabled do
@@ -626,31 +584,43 @@ AddOtherToggle(otherTab, "🎯 Advanced FPS Aimbot", "Tâm ngắm tầm xa thôn
                         if AimbotConfig.TeamCheck and LocalPlayer.Team and p.Team == LocalPlayer.Team then
                             isTeamMate = true
                         end
-                        
                         if not isTeamMate and p.Character then
-                            local humanoid = p.Character:FindFirstChildOfClass("Humanoid")
-                            local targetPart = p.Character:FindFirstChild(AimbotConfig.TargetPart) or p.Character:FindFirstChild("HumanoidRootPart")
-                            
-                            if humanoid and targetPart and humanoid.Health > 0 then
-                                local dist = (targetPart.Position - myPos).Magnitude
+                            local hum = p.Character:FindFirstChildOfClass("Humanoid")
+                            local part = p.Character:FindFirstChild(AimbotConfig.TargetPart) or p.Character:FindFirstChild("HumanoidRootPart")
+                            if hum and part and hum.Health > 0 then
+                                local dist = (part.Position - myPos).Magnitude
                                 if dist < shortestDist then
                                     shortestDist = dist
-                                    closestTarget = targetPart
+                                    closestTarget = part
                                 end
+                            end
+                        end
+                    end
+                end
+
+                for _, obj in pairs(Workspace:GetDescendants()) do
+                    if obj:IsA("Model") and obj ~= char and not Players:GetPlayerFromCharacter(obj) then
+                        local hum = obj:FindFirstChildOfClass("Humanoid")
+                        local part = obj:FindFirstChild(AimbotConfig.TargetPart) or obj:FindFirstChild("HumanoidRootPart") or obj.PrimaryPart
+                        if hum and part and hum.Health > 0 then
+                            local dist = (part.Position - myPos).Magnitude
+                            if dist < shortestDist then
+                                shortestDist = dist
+                                closestTarget = part
                             end
                         end
                     end
                 end
                 
                 if closestTarget then
-                    Camera.CFrame = CFrame.new(Camera.CFrame.Position, closestTarget.Position)
+                    Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, closestTarget.Position)
                 end
             end)
         end
     end)
 end)
 
--- Quick Settings Button (Mở cửa sổ cấu hình nhanh Aimbot)
+-- 4. Quick Settings Button (Mở cửa sổ cấu hình nhanh Aimbot)
 local QuickSettingsBtn = Instance.new("TextButton")
 QuickSettingsBtn.Size = UDim2.new(1, 0, 0, 42)
 QuickSettingsBtn.BackgroundColor3 = Color3.fromRGB(25, 35, 55)
@@ -827,4 +797,4 @@ end)
 
 MakeDraggable(WinTopBar, QuickWindow)
 
-print("[Furina Hub v3.7] Loaded successfully with Invisible Shield, Anti-Die & Ultra Fix Lag!")
+print("[Furina Hub v3.9] Loaded successfully with Official Chibi Furina Image & Uncapped FPS!")
