@@ -1,6 +1,6 @@
 -- ==============================================================================
--- [ROBLOX LUAU UNC-COMPLIANT: FURINA HUB - ULTIMATE DASHBOARD v3.12]
--- Standard Roblox Asset ID Integration, 100% Guaranteed Image Rendering
+-- [ROBLOX LUAU UNC-COMPLIANT: FURINA HUB - ULTIMATE DASHBOARD v3.13]
+-- Using Original Working Image Asset, Uncapped 200+ FPS, Pro Aimbot & Lag Fix
 -- ==============================================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -15,13 +15,30 @@ local LocalPlayer = Players.LocalPlayer
 local ParentGui = (gethui and gethui()) or CoreGui or LocalPlayer:WaitForChild("PlayerGui")
 
 -- 1. IDEMPOTENT CLEANUP
-local guiName = "FurinaHub_v312"
+local guiName = "FurinaHub_v313"
 if ParentGui:FindFirstChild(guiName) then
     ParentGui[guiName]:Destroy()
 end
 
--- 2. STABLE ROBLOX ASSET ID PIPELINE (100% Hiện ảnh chuẩn xác trên Mobile & PC)
-local furinaDecalId = "rbxassetid://6023426915" -- Sử dụng Asset ID chuẩn của Roblox
+-- 2. ORIGINAL ROBUST ASSET PIPELINE (Using original working image link)
+local imageUrl = "https://zaygip.vercel.app/api/chat?action=raw_image&id=0602157cbd40b833f65d66c4ddd8f943"
+local filename = "furina_original_v313.png"
+local getAsset = getcustomasset or getsynasset
+local assetPath = ""
+
+if writefile and readfile and isfile and getAsset then
+    pcall(function()
+        if not isfile(filename) or (readfile and #readfile(filename) < 50) then
+            local response = game:HttpGet(imageUrl)
+            if response and not response:find("<!DOCTYPE") and not response:find("<html") then
+                writefile(filename, response)
+            end
+        end
+        if isfile(filename) then
+            assetPath = getAsset(filename)
+        end
+    end)
+end
 
 -- 3. GUI INITIALIZATION
 local ScreenGui = Instance.new("ScreenGui")
@@ -76,13 +93,13 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Floating Toggle Button (Nút mở/đóng menu hiện ảnh chuẩn)
+-- Floating Toggle Button (Nút mở/đóng menu dùng ảnh gốc)
 local ToggleBtn = Instance.new("ImageButton")
 ToggleBtn.Name = "ToggleBtn"
 ToggleBtn.Size = UDim2.new(0, 56, 0, 56)
 ToggleBtn.Position = UDim2.new(0, 20, 0, 100)
 ToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 35, 60)
-ToggleBtn.Image = furinaDecalId
+ToggleBtn.Image = assetPath ~= "" and assetPath or ""
 ToggleBtn.ScaleType = Enum.ScaleType.Crop
 ToggleBtn.ZIndex = 100
 ToggleBtn.Parent = ScreenGui
@@ -96,7 +113,7 @@ ToggleStroke.Color = Color3.fromRGB(0, 190, 255)
 ToggleStroke.Thickness = 2.5
 ToggleStroke.Parent = ToggleBtn
 
--- Main Window (Giao diện chính v3.12)
+-- Main Window (Giao diện chính v3.13)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 560, 0, 380)
@@ -111,20 +128,22 @@ local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 14)
 MainCorner.Parent = MainFrame
 
--- Z-INDEX LAYER 1: Background Image (Hiển thị ảnh nền sắc nét 100%)
-local BgImage = Instance.new("ImageLabel")
-BgImage.Size = UDim2.new(1, 0, 1, 0)
-BgImage.Image = furinaDecalId
-BgImage.ScaleType = Enum.ScaleType.Crop
-BgImage.BackgroundTransparency = 1
-BgImage.ZIndex = 1
-BgImage.Parent = MainFrame
+-- Z-INDEX LAYER 1: Background Image (Dùng ảnh gốc)
+if assetPath ~= "" then
+    local BgImage = Instance.new("ImageLabel")
+    BgImage.Size = UDim2.new(1, 0, 1, 0)
+    BgImage.Image = assetPath
+    BgImage.ScaleType = Enum.ScaleType.Crop
+    BgImage.BackgroundTransparency = 1
+    BgImage.ZIndex = 1
+    BgImage.Parent = MainFrame
 
-local BgCorner = Instance.new("UICorner")
-BgCorner.CornerRadius = UDim.new(0, 14)
-BgCorner.Parent = BgImage
+    local BgCorner = Instance.new("UICorner")
+    BgCorner.CornerRadius = UDim.new(0, 14)
+    BgCorner.Parent = BgImage
+end
 
--- Z-INDEX LAYER 2: Dark Overlay (Độ trong suốt hoàn hảo để hiển thị rõ ảnh nền và chữ)
+-- Z-INDEX LAYER 2: Dark Overlay (Độ mờ chuẩn để hiển thị rõ ảnh nền)
 local Overlay = Instance.new("Frame")
 Overlay.Size = UDim2.new(1, 0, 1, 0)
 Overlay.BackgroundColor3 = Color3.fromRGB(8, 10, 18)
@@ -152,7 +171,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -100, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "💧 FURINA HUB | Ultimate Dashboard v3.12"
+Title.Text = "💧 FURINA HUB | Ultimate Dashboard v3.13"
 Title.TextColor3 = Color3.fromRGB(220, 240, 255)
 Title.TextSize = 14
 Title.Font = Enum.Font.GothamBold
@@ -781,4 +800,4 @@ end)
 
 MakeDraggable(WinTopBar, QuickWindow)
 
-print("[Furina Hub v3.12] Loaded successfully with Standard Roblox Asset ID & Uncapped FPS!")
+print("[Furina Hub v3.13] Loaded successfully with Original Working Image Asset & Uncapped FPS!")
