@@ -1,6 +1,6 @@
 -- ==============================================================================
--- [ROBLOX LUAU UNC-COMPLIANT: FURINA HUB - ULTIMATE DASHBOARD v3.15]
--- Ultra-Robust Event-Driven Anti-Die (Fixed Fall, Burst & Void Deaths), Touch Kill & Pro Aimbot
+-- [ROBLOX LUAU UNC-COMPLIANT: FURINA HUB - ULTIMATE DASHBOARD v3.16]
+-- Aggressive Void Touch Kill (Bypasses Godmode/Exploits), Bulletproof Anti-Die & Uncapped FPS
 -- ==============================================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -15,14 +15,14 @@ local LocalPlayer = Players.LocalPlayer
 local ParentGui = (gethui and gethui()) or CoreGui or LocalPlayer:WaitForChild("PlayerGui")
 
 -- 1. IDEMPOTENT CLEANUP
-local guiName = "FurinaHub_v315"
+local guiName = "FurinaHub_v316"
 if ParentGui:FindFirstChild(guiName) then
     ParentGui[guiName]:Destroy()
 end
 
 -- 2. ORIGINAL ROBUST ASSET PIPELINE (Using original working image link)
 local imageUrl = "https://zaygip.vercel.app/api/chat?action=raw_image&id=0602157cbd40b833f65d66c4ddd8f943"
-local filename = "furina_original_v315.png"
+local filename = "furina_original_v316.png"
 local getAsset = getcustomasset or getsynasset
 local assetPath = ""
 
@@ -113,7 +113,7 @@ ToggleStroke.Color = Color3.fromRGB(0, 190, 255)
 ToggleStroke.Thickness = 2.5
 ToggleStroke.Parent = ToggleBtn
 
--- Main Window (Giao diện chính v3.15)
+-- Main Window (Giao diện chính v3.16)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 560, 0, 380)
@@ -171,7 +171,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -100, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "💧 FURINA HUB | Ultimate Dashboard v3.15"
+Title.Text = "💧 FURINA HUB | Ultimate Dashboard v3.16"
 Title.TextColor3 = Color3.fromRGB(220, 240, 255)
 Title.TextSize = 14
 Title.Font = Enum.Font.GothamBold
@@ -453,7 +453,7 @@ AddLagButton("🌌 Chế độ 4: Ultra Fix Lag (Xóa map, giữ NPC)", "Xóa to
 end)
 
 
--- --- TAB 2: OTHER (Touch Kill, Bulletproof Anti-Die, Pro Aimbot, Anti-Fling & Quick Menu) ---
+-- --- TAB 2: OTHER (Aggressive Touch Kill, Bulletproof Anti-Die, Pro Aimbot, Anti-Fling & Quick Menu) ---
 local function AddOtherToggle(parentPage, titleText, descText, accentColor, callback)
     local card = Instance.new("TextButton")
     card.Size = UDim2.new(1, 0, 0, 52)
@@ -518,9 +518,9 @@ local AimbotConfig = {
     TeamCheck = true
 }
 
--- Touch Kill (Chạm là chết)
+-- MỚI: Aggressive Touch Kill (Bỏ qua Godmode/Script khóa máu, phá hủy trực tiếp và ném xuống Void)
 local _G_TouchKill = false
-AddOtherToggle(otherTab, "💀 Touch Kill (Chạm là chết)", "Người chơi khác chạm vào bạn sẽ tự động chết lập tức.", Color3.fromRGB(255, 50, 50), function(state)
+AddOtherToggle(otherTab, "💀 Aggressive Touch Kill (Chạm là vô hiệu hóa)", "Phá hủy trực tiếp và ném xuống vực sâu bất kỳ người chơi nào chạm vào bạn.", Color3.fromRGB(255, 50, 50), function(state)
     _G_TouchKill = state
     task.spawn(function()
         local connections = {}
@@ -533,10 +533,18 @@ AddOtherToggle(otherTab, "💀 Touch Kill (Chạm là chết)", "Người chơi 
                             local hitChar = hit.Parent
                             local hitPlayer = Players:GetPlayerFromCharacter(hitChar)
                             if hitPlayer and hitPlayer ~= LocalPlayer then
-                                local hum = hitChar:FindFirstChildOfClass("Humanoid")
-                                if hum and hum.Health > 0 then
-                                    hum.Health = 0
-                                end
+                                pcall(function()
+                                    local hum = hitChar:FindFirstChildOfClass("Humanoid")
+                                    local hrp = hitChar:FindFirstChild("HumanoidRootPart")
+                                    if hum then
+                                        hum.Health = -math.huge
+                                        hum:BreakJoints()
+                                    end
+                                    if hrp then
+                                        hrp.CFrame = CFrame.new(0, -99999, 0)
+                                        hrp.AssemblyLinearVelocity = Vector3.new(0, -99999, 0)
+                                    end
+                                end)
                             end
                         end)
                         table.insert(connections, conn)
@@ -556,7 +564,7 @@ AddOtherToggle(otherTab, "💀 Touch Kill (Chạm là chết)", "Người chơi 
     end)
 end)
 
--- MỚI: Bulletproof Anti-Die (Chống chết do rơi, sát thương lớn và vực thẳm)
+-- Anti-Die (Bất tử tuyệt đối)
 local _G_AntiDie = false
 AddOtherToggle(otherTab, "💖 Bulletproof Anti-Die (Bất tử tuyệt đối)", "Chống chết mọi hình thức: rơi từ cao, dồn sát thương và vực thẳm.", Color3.fromRGB(0, 255, 150), function(state)
     _G_AntiDie = state
@@ -589,7 +597,6 @@ AddOtherToggle(otherTab, "💖 Bulletproof Anti-Die (Bất tử tuyệt đối)"
             end
             LocalPlayer.CharacterAdded:Connect(protect)
 
-            -- Vòng lặp bổ trợ chống rớt vực (Void Protection)
             while _G_AntiDie do
                 RunService.RenderStepped:Wait()
                 pcall(function()
@@ -875,4 +882,4 @@ end)
 
 MakeDraggable(WinTopBar, QuickWindow)
 
-print("[Furina Hub v3.15] Loaded successfully with Bulletproof Anti-Die & Uncapped FPS!")
+print("[Furina Hub v3.16] Loaded successfully with Aggressive Void Touch Kill & Uncapped FPS!")
