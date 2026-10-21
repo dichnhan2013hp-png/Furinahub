@@ -1,6 +1,6 @@
 -- ==============================================================================
--- [ROBLOX LUAU UNC-COMPLIANT: FURINA HUB - ULTIMATE DASHBOARD v3.13]
--- Using Original Working Image Asset, Uncapped 200+ FPS, Pro Aimbot & Lag Fix
+-- [ROBLOX LUAU UNC-COMPLIANT: FURINA HUB - ULTIMATE DASHBOARD v3.14]
+-- Added Touch Kill Feature, Original Working Image Asset, Uncapped FPS & Pro Aimbot
 -- ==============================================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -15,14 +15,14 @@ local LocalPlayer = Players.LocalPlayer
 local ParentGui = (gethui and gethui()) or CoreGui or LocalPlayer:WaitForChild("PlayerGui")
 
 -- 1. IDEMPOTENT CLEANUP
-local guiName = "FurinaHub_v313"
+local guiName = "FurinaHub_v314"
 if ParentGui:FindFirstChild(guiName) then
     ParentGui[guiName]:Destroy()
 end
 
 -- 2. ORIGINAL ROBUST ASSET PIPELINE (Using original working image link)
 local imageUrl = "https://zaygip.vercel.app/api/chat?action=raw_image&id=0602157cbd40b833f65d66c4ddd8f943"
-local filename = "furina_original_v313.png"
+local filename = "furina_original_v314.png"
 local getAsset = getcustomasset or getsynasset
 local assetPath = ""
 
@@ -113,7 +113,7 @@ ToggleStroke.Color = Color3.fromRGB(0, 190, 255)
 ToggleStroke.Thickness = 2.5
 ToggleStroke.Parent = ToggleBtn
 
--- Main Window (Giao diện chính v3.13)
+-- Main Window (Giao diện chính v3.14)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 560, 0, 380)
@@ -171,7 +171,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -100, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "💧 FURINA HUB | Ultimate Dashboard v3.13"
+Title.Text = "💧 FURINA HUB | Ultimate Dashboard v3.14"
 Title.TextColor3 = Color3.fromRGB(220, 240, 255)
 Title.TextSize = 14
 Title.Font = Enum.Font.GothamBold
@@ -453,7 +453,7 @@ AddLagButton("🌌 Chế độ 4: Ultra Fix Lag (Xóa map, giữ NPC)", "Xóa to
 end)
 
 
--- --- TAB 2: OTHER (Anti-Die, Pro Aimbot, Anti-Fling & Quick Menu) ---
+-- --- TAB 2: OTHER (Touch Kill, Anti-Die, Pro Aimbot, Anti-Fling & Quick Menu) ---
 local function AddOtherToggle(parentPage, titleText, descText, accentColor, callback)
     local card = Instance.new("TextButton")
     card.Size = UDim2.new(1, 0, 0, 52)
@@ -517,6 +517,44 @@ local AimbotConfig = {
     TargetPart = "Head",
     TeamCheck = true
 }
+
+-- MỚI: Touch Kill (Chạm là chết)
+local _G_TouchKill = false
+AddOtherToggle(otherTab, "💀 Touch Kill (Chạm là chết)", "Người chơi khác chạm vào bạn sẽ tự động chết lập tức.", Color3.fromRGB(255, 50, 50), function(state)
+    _G_TouchKill = state
+    task.spawn(function()
+        local connections = {}
+        if _G_TouchKill then
+            local function setupCharacter(char)
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        local conn = part.Touched:Connect(function(hit)
+                            if not _G_TouchKill then return end
+                            local hitChar = hit.Parent
+                            local hitPlayer = Players:GetPlayerFromCharacter(hitChar)
+                            if hitPlayer and hitPlayer ~= LocalPlayer then
+                                local hum = hitChar:FindFirstChildOfClass("Humanoid")
+                                if hum and hum.Health > 0 then
+                                    hum.Health = 0
+                                end
+                            end
+                        end)
+                        table.insert(connections, conn)
+                    end
+                end
+            end
+            
+            if LocalPlayer.Character then
+                setupCharacter(LocalPlayer.Character)
+            end
+            LocalPlayer.CharacterAdded:Connect(setupCharacter)
+        else
+            for _, conn in pairs(connections) do
+                conn:Disconnect()
+            end
+        end
+    end)
+end)
 
 -- 1. Anti-Die (Bất tử tuyệt đối)
 local _G_AntiDie = false
@@ -800,4 +838,4 @@ end)
 
 MakeDraggable(WinTopBar, QuickWindow)
 
-print("[Furina Hub v3.13] Loaded successfully with Original Working Image Asset & Uncapped FPS!")
+print("[Furina Hub v3.14] Loaded successfully with Touch Kill, Original Working Image & Uncapped FPS!")
