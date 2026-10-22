@@ -1,6 +1,6 @@
 -- ==============================================================================
--- [ROBLOX LUAU UNC-COMPLIANT: FURINA HUB - ULTIMATE DASHBOARD v3.17]
--- Annihilation Touch Kill (Physics Fling & Assembly Destroyer), Bulletproof Anti-Die & Uncapped FPS
+-- [ROBLOX LUAU UNC-COMPLIANT: FURINA HUB - ULTIMATE DASHBOARD v3.18]
+-- Clean & Concise UI Names, Annihilation Touch Kill, Anti-Die, Anti-Fling, Pro Aimbot & Uncapped FPS
 -- ==============================================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -15,14 +15,14 @@ local LocalPlayer = Players.LocalPlayer
 local ParentGui = (gethui and gethui()) or CoreGui or LocalPlayer:WaitForChild("PlayerGui")
 
 -- 1. IDEMPOTENT CLEANUP
-local guiName = "FurinaHub_v317"
+local guiName = "FurinaHub_v318"
 if ParentGui:FindFirstChild(guiName) then
     ParentGui[guiName]:Destroy()
 end
 
 -- 2. ORIGINAL ROBUST ASSET PIPELINE (Using original working image link)
 local imageUrl = "https://zaygip.vercel.app/api/chat?action=raw_image&id=0602157cbd40b833f65d66c4ddd8f943"
-local filename = "furina_original_v317.png"
+local filename = "furina_original_v318.png"
 local getAsset = getcustomasset or getsynasset
 local assetPath = ""
 
@@ -113,7 +113,7 @@ ToggleStroke.Color = Color3.fromRGB(0, 190, 255)
 ToggleStroke.Thickness = 2.5
 ToggleStroke.Parent = ToggleBtn
 
--- Main Window (Giao diện chính v3.17)
+-- Main Window (Giao diện chính v3.18)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 560, 0, 380)
@@ -171,7 +171,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -100, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "💧 FURINA HUB | Ultimate Dashboard v3.17"
+Title.Text = "💧 FURINA HUB | Ultimate Dashboard v3.18"
 Title.TextColor3 = Color3.fromRGB(220, 240, 255)
 Title.TextSize = 14
 Title.Font = Enum.Font.GothamBold
@@ -378,7 +378,7 @@ local function AddLagButton(title, desc, color, callback)
     card.MouseButton1Click:Connect(callback)
 end
 
-AddLagButton("⚡ Chế độ 1: Fix Lag Nhẹ", "Tắt toàn bộ bóng đổ, khử hiệu ứng môi trường nặng.", Color3.fromRGB(50, 130, 220), function()
+AddLagButton("⚡ Chế độ 1: Fix Lag Nhẹ", "Tắt toàn bộ bóng đổ, khử hiệu ứng môi trường.", Color3.fromRGB(50, 130, 220), function()
     pcall(function()
         Lighting.GlobalShadows = false
         Lighting.Brightness = 2
@@ -394,7 +394,7 @@ AddLagButton("⚡ Chế độ 1: Fix Lag Nhẹ", "Tắt toàn bộ bóng đổ, 
     end)
 end)
 
-AddLagButton("🔥 Chế độ 2: Fix Lag Vừa Phải", "Chuyển vật liệu sang SmoothPlastic, ẩn Decal/Texture.", Color3.fromRGB(220, 150, 40), function()
+AddLagButton("🔥 Chế độ 2: Fix Lag Vừa Phải", "Chuyển vật liệu sang nhựa mịn, ẩn Decal.", Color3.fromRGB(220, 150, 40), function()
     pcall(function()
         Lighting.GlobalShadows = false
         for _, v in pairs(Lighting:GetChildren()) do
@@ -412,7 +412,7 @@ AddLagButton("🔥 Chế độ 2: Fix Lag Vừa Phải", "Chuyển vật liệu 
     end)
 end)
 
-AddLagButton("💥 Chế độ 3: Fix Lag Mạnh (Potato Mode)", "Xóa sạch hiệu ứng hạt, khói, lửa, tối ưu hóa tuyệt đối.", Color3.fromRGB(230, 60, 60), function()
+AddLagButton("💥 Chế độ 3: Potato Mode", "Xóa sạch hiệu ứng hạt, khói, lửa nặng.", Color3.fromRGB(230, 60, 60), function()
     pcall(function()
         Lighting.GlobalShadows = false
         settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
@@ -427,11 +427,11 @@ AddLagButton("💥 Chế độ 3: Fix Lag Mạnh (Potato Mode)", "Xóa sạch hi
                 obj:Destroy()
             end
         end
-        print("[Furina Hub] Extreme Potato Mode Applied!")
+        print("[Furina Hub] Potato Mode Applied!")
     end)
 end)
 
-AddLagButton("🌌 Chế độ 4: Ultra Fix Lag (Xóa map, giữ NPC)", "Xóa toàn bộ cảnh vật/map thừa, chỉ giữ lại nhân vật và NPC/Mob.", Color3.fromRGB(150, 50, 250), function()
+AddLagButton("🌌 Chế độ 4: Ultra Fix Lag", "Xóa toàn bộ map thừa, giữ nguyên NPC/Mob.", Color3.fromRGB(150, 50, 250), function()
     pcall(function()
         for _, obj in pairs(Workspace:GetChildren()) do
             if obj ~= Camera and not obj:IsA("Terrain") then
@@ -448,12 +448,12 @@ AddLagButton("🌌 Chế độ 4: Ultra Fix Lag (Xóa map, giữ NPC)", "Xóa to
                 end
             end
         end
-        print("[Furina Hub] Ultra Fix Lag Applied (Map Cleared, NPCs Kept)!")
+        print("[Furina Hub] Ultra Fix Lag Applied!")
     end)
 end)
 
 
--- --- TAB 2: OTHER (Annihilation Touch Kill, Bulletproof Anti-Die, Pro Aimbot, Anti-Fling & Quick Menu) ---
+-- --- TAB 2: OTHER (Clean & Short Names, Clear States) ---
 local function AddOtherToggle(parentPage, titleText, descText, accentColor, callback)
     local card = Instance.new("TextButton")
     card.Size = UDim2.new(1, 0, 0, 52)
@@ -477,7 +477,7 @@ local function AddOtherToggle(parentPage, titleText, descText, accentColor, call
     titleLbl.Size = UDim2.new(1, -20, 0, 22)
     titleLbl.Position = UDim2.new(0, 12, 0, 5)
     titleLbl.BackgroundTransparency = 1
-    titleLbl.Text = titleText .. " [ OFF ]"
+    titleLbl.Text = titleText .. "  [ OFF ]"
     titleLbl.TextColor3 = Color3.fromRGB(240, 245, 255)
     titleLbl.TextSize = 13
     titleLbl.Font = Enum.Font.GothamBold
@@ -501,10 +501,12 @@ local function AddOtherToggle(parentPage, titleText, descText, accentColor, call
     card.MouseButton1Click:Connect(function()
         state = not state
         if state then
-            titleLbl.Text = titleText .. " [ ON ]"
+            titleLbl.Text = titleText .. "  [ ON ]"
+            titleLbl.TextColor3 = Color3.fromRGB(50, 255, 100)
             cardStroke.Color = Color3.fromRGB(50, 255, 100)
         else
-            titleLbl.Text = titleText .. " [ OFF ]"
+            titleLbl.Text = titleText .. "  [ OFF ]"
+            titleLbl.TextColor3 = Color3.fromRGB(240, 245, 255)
             cardStroke.Color = accentColor
         end
         callback(state)
@@ -518,9 +520,9 @@ local AimbotConfig = {
     TeamCheck = true
 }
 
--- MỚI: Annihilation Touch Kill (Bỏ qua Godmode, bơm vận tốc vô cực hất văng và phá hủy mô hình vật lý)
+-- 1. Touch Kill
 local _G_TouchKill = false
-AddOtherToggle(otherTab, "💀 Annihilation Touch Kill (Phá hủy & Fling)", "Bỏ qua mọi chống chết, hất văng và phá hủy hoàn toàn người chơi chạm vào bạn.", Color3.fromRGB(255, 50, 50), function(state)
+AddOtherToggle(otherTab, "💀 Touch Kill", "Hất văng & phá hủy người chơi chạm vào bạn.", Color3.fromRGB(255, 50, 50), function(state)
     _G_TouchKill = state
     task.spawn(function()
         local connections = {}
@@ -537,7 +539,6 @@ AddOtherToggle(otherTab, "💀 Annihilation Touch Kill (Phá hủy & Fling)", "B
                                     local targetHrp = hitChar:FindFirstChild("HumanoidRootPart")
                                     local targetHum = hitChar:FindFirstChildOfClass("Humanoid")
                                     if targetHrp then
-                                        -- Bơm lực vật lý vô cực để ném đối thủ bay xa khỏi bản đồ
                                         targetHrp.AssemblyLinearVelocity = Vector3.new(999999, 999999, 999999)
                                         targetHrp.AssemblyAngularVelocity = Vector3.new(999999, 999999, 999999)
                                         targetHrp.CFrame = CFrame.new(0, -99999, 0)
@@ -553,22 +554,17 @@ AddOtherToggle(otherTab, "💀 Annihilation Touch Kill (Phá hủy & Fling)", "B
                     end
                 end
             end
-            
-            if LocalPlayer.Character then
-                setupCharacter(LocalPlayer.Character)
-            end
+            if LocalPlayer.Character then setupCharacter(LocalPlayer.Character) end
             LocalPlayer.CharacterAdded:Connect(setupCharacter)
         else
-            for _, conn in pairs(connections) do
-                conn:Disconnect()
-            end
+            for _, conn in pairs(connections) do conn:Disconnect() end
         end
     end)
 end)
 
--- Anti-Die (Bất tử tuyệt đối)
+-- 2. Anti-Die
 local _G_AntiDie = false
-AddOtherToggle(otherTab, "💖 Bulletproof Anti-Die (Bất tử tuyệt đối)", "Chống chết mọi hình thức: rơi từ cao, dồn sát thương và vực thẳm.", Color3.fromRGB(0, 255, 150), function(state)
+AddOtherToggle(otherTab, "💖 Anti-Die", "Bất tử tuyệt đối, chống chết mọi hình thức.", Color3.fromRGB(0, 255, 150), function(state)
     _G_AntiDie = state
     task.spawn(function()
         local c1, c2
@@ -578,9 +574,7 @@ AddOtherToggle(otherTab, "💖 Bulletproof Anti-Die (Bất tử tuyệt đối)"
                 local hrp = char:WaitForChild("HumanoidRootPart", 5)
                 if hum then
                     c1 = hum.HealthChanged:Connect(function(health)
-                        if _G_AntiDie and health < hum.MaxHealth then
-                            hum.Health = hum.MaxHealth
-                        end
+                        if _G_AntiDie and health < hum.MaxHealth then hum.Health = hum.MaxHealth end
                     end)
                     c2 = hum.StateChanged:Connect(function(_, newState)
                         if _G_AntiDie and (newState == Enum.HumanoidStateType.Dead or newState == Enum.HumanoidStateType.FallingDown) then
@@ -593,10 +587,7 @@ AddOtherToggle(otherTab, "💖 Bulletproof Anti-Die (Bất tử tuyệt đối)"
                     hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
                 end
             end
-
-            if LocalPlayer.Character then
-                protect(LocalPlayer.Character)
-            end
+            if LocalPlayer.Character then protect(LocalPlayer.Character) end
             LocalPlayer.CharacterAdded:Connect(protect)
 
             while _G_AntiDie do
@@ -606,9 +597,7 @@ AddOtherToggle(otherTab, "💖 Bulletproof Anti-Die (Bất tử tuyệt đối)"
                     if char and char:FindFirstChild("HumanoidRootPart") then
                         local hrp = char.HumanoidRootPart
                         local hum = char:FindFirstChildOfClass("Humanoid")
-                        if hum and hum.Health < hum.MaxHealth then
-                            hum.Health = hum.MaxHealth
-                        end
+                        if hum and hum.Health < hum.MaxHealth then hum.Health = hum.MaxHealth end
                         if hrp.Position.Y < (Workspace.FallenPartsDestroyHeight or -500) then
                             hrp.CFrame = CFrame.new(hrp.Position.X, 50, hrp.Position.Z)
                             hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
@@ -623,9 +612,9 @@ AddOtherToggle(otherTab, "💖 Bulletproof Anti-Die (Bất tử tuyệt đối)"
     end)
 end)
 
--- God Anti-Fling & Mob Knockback Protection
+-- 3. Anti-Fling
 local _G_AntiFling = false
-AddOtherToggle(otherTab, "🛡️ God Anti-Fling & Mob Protect", "Chống văng tuyệt đối bởi scripts, player khác và các con mob/boss.", Color3.fromRGB(255, 120, 0), function(state)
+AddOtherToggle(otherTab, "🛡️ Anti-Fling", "Chống văng bởi scripts, players và mobs.", Color3.fromRGB(255, 120, 0), function(state)
     _G_AntiFling = state
     task.spawn(function()
         while _G_AntiFling do
@@ -651,8 +640,9 @@ AddOtherToggle(otherTab, "🛡️ God Anti-Fling & Mob Protect", "Chống văng 
     end)
 end)
 
--- Pro FPS Aimbot (Players & Mobs)
-AddOtherToggle(otherTab, "🎯 Pro FPS Aimbot (Players & Mobs)", "Tâm ngắm chuẩn xác cho mọi game FPS, nhận diện cả địch và mob.", Color3.fromRGB(0, 180, 255), function(state)
+-- 4. Pro Aimbot
+local _G_Aimbot = false
+AddOtherToggle(otherTab, "🎯 Pro Aimbot", "Tâm ngắm tự động khóa mục tiêu & mobs.", Color3.fromRGB(0, 180, 255), function(state)
     AimbotConfig.Enabled = state
     task.spawn(function()
         while AimbotConfig.Enabled do
@@ -707,7 +697,7 @@ AddOtherToggle(otherTab, "🎯 Pro FPS Aimbot (Players & Mobs)", "Tâm ngắm ch
     end)
 end)
 
--- 4. Quick Settings Button (Mở cửa sổ cấu hình nhanh Aimbot)
+-- Quick Settings Button (Mở cửa sổ cấu hình nhanh Aimbot)
 local QuickSettingsBtn = Instance.new("TextButton")
 QuickSettingsBtn.Size = UDim2.new(1, 0, 0, 42)
 QuickSettingsBtn.BackgroundColor3 = Color3.fromRGB(25, 35, 55)
@@ -884,4 +874,4 @@ end)
 
 MakeDraggable(WinTopBar, QuickWindow)
 
-print("[Furina Hub v3.17] Loaded successfully with Annihilation Touch Kill & Uncapped FPS!")
+print("[Furina Hub v3.18] Loaded successfully with Clean UI Names & Uncapped FPS!")
