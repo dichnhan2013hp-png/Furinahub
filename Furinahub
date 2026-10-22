@@ -1,6 +1,6 @@
 -- ==============================================================================
--- [ROBLOX LUAU UNC-COMPLIANT: FURINA HUB - ULTIMATE DASHBOARD v3.18]
--- Clean & Concise UI Names, Annihilation Touch Kill, Anti-Die, Anti-Fling, Pro Aimbot & Uncapped FPS
+-- [ROBLOX LUAU UNC-COMPLIANT: FURINA HUB - ULTIMATE DASHBOARD v3.19]
+-- Massive FPS Boost Modes, Annihilation Touch Kill, Anti-Die, Anti-Fling, Pro Aimbot & Uncapped FPS
 -- ==============================================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -15,14 +15,14 @@ local LocalPlayer = Players.LocalPlayer
 local ParentGui = (gethui and gethui()) or CoreGui or LocalPlayer:WaitForChild("PlayerGui")
 
 -- 1. IDEMPOTENT CLEANUP
-local guiName = "FurinaHub_v318"
+local guiName = "FurinaHub_v319"
 if ParentGui:FindFirstChild(guiName) then
     ParentGui[guiName]:Destroy()
 end
 
 -- 2. ORIGINAL ROBUST ASSET PIPELINE (Using original working image link)
 local imageUrl = "https://zaygip.vercel.app/api/chat?action=raw_image&id=0602157cbd40b833f65d66c4ddd8f943"
-local filename = "furina_original_v318.png"
+local filename = "furina_original_v319.png"
 local getAsset = getcustomasset or getsynasset
 local assetPath = ""
 
@@ -113,7 +113,7 @@ ToggleStroke.Color = Color3.fromRGB(0, 190, 255)
 ToggleStroke.Thickness = 2.5
 ToggleStroke.Parent = ToggleBtn
 
--- Main Window (Giao diện chính v3.18)
+-- Main Window (Giao diện chính v3.19)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 560, 0, 380)
@@ -171,7 +171,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -100, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "💧 FURINA HUB | Ultimate Dashboard v3.18"
+Title.Text = "💧 FURINA HUB | Ultimate Dashboard v3.19"
 Title.TextColor3 = Color3.fromRGB(220, 240, 255)
 Title.TextSize = 14
 Title.Font = Enum.Font.GothamBold
@@ -331,7 +331,7 @@ end
 local fixLagTab = CreateTab("Fix Lag")
 local otherTab = CreateTab("Other")
 
--- --- TAB 1: FIX LAG (4 Chế độ tối ưu siêu cấp) ---
+-- --- TAB 1: FIX LAG (Massive FPS Boost Modes) ---
 local function AddLagButton(title, desc, color, callback)
     local card = Instance.new("TextButton")
     card.Size = UDim2.new(1, 0, 0, 52)
@@ -378,11 +378,12 @@ local function AddLagButton(title, desc, color, callback)
     card.MouseButton1Click:Connect(callback)
 end
 
-AddLagButton("⚡ Chế độ 1: Fix Lag Nhẹ", "Tắt toàn bộ bóng đổ, khử hiệu ứng môi trường.", Color3.fromRGB(50, 130, 220), function()
+-- Chế độ 1: Tối ưu ánh sáng & Chuyển Compatibility Mode
+AddLagButton("⚡ Chế độ 1: Fix Lag Nhẹ", "Chuyển Lighting sang Compatibility, tắt bóng & PostEffect.", Color3.fromRGB(50, 130, 220), function()
     pcall(function()
+        Lighting.Technology = Enum.LightingTechnology.Compatibility
         Lighting.GlobalShadows = false
-        Lighting.Brightness = 2
-        Lighting.FogEnd = 99999
+        Lighting.Brightness = 1
         for _, v in pairs(Lighting:GetChildren()) do
             if v:IsA("PostEffect") then v.Enabled = false end
         end
@@ -390,12 +391,14 @@ AddLagButton("⚡ Chế độ 1: Fix Lag Nhẹ", "Tắt toàn bộ bóng đổ, 
             workspace.Terrain.WaterWaveSize = 0
             workspace.Terrain.WaterTransparency = 1
         end
-        print("[Furina Hub] Light Fix Applied!")
+        print("[Furina Hub] Massive Light Fix Applied!")
     end)
 end)
 
-AddLagButton("🔥 Chế độ 2: Fix Lag Vừa Phải", "Chuyển vật liệu sang nhựa mịn, ẩn Decal.", Color3.fromRGB(220, 150, 40), function()
+-- Chế độ 2: Ép nhựa mịn toàn bộ map & xóa texture
+AddLagButton("🔥 Chế độ 2: Fix Lag Vừa Phải", "Ép toàn bộ map sang nhựa mịn, ẩn sạch Decal/Texture.", Color3.fromRGB(220, 150, 40), function()
     pcall(function()
+        Lighting.Technology = Enum.LightingTechnology.Compatibility
         Lighting.GlobalShadows = false
         for _, v in pairs(Lighting:GetChildren()) do
             if v:IsA("PostEffect") then v.Enabled = false end
@@ -404,21 +407,24 @@ AddLagButton("🔥 Chế độ 2: Fix Lag Vừa Phải", "Chuyển vật liệu 
             if part:IsA("BasePart") then
                 part.Material = Enum.Material.SmoothPlastic
                 part.Reflectance = 0
+                part.CastShadow = false
             elseif part:IsA("Decal") or part:IsA("Texture") then
                 part.Transparency = 1
             end
         end
-        print("[Furina Hub] Moderate Fix Applied!")
+        print("[Furina Hub] Massive Material Fix Applied!")
     end)
 end)
 
-AddLagButton("💥 Chế độ 3: Potato Mode", "Xóa sạch hiệu ứng hạt, khói, lửa nặng.", Color3.fromRGB(230, 60, 60), function()
+-- Chế độ 3: Potato Mode cực mạnh (Xóa sạch mọi hiệu ứng hạt, khói, lửa)
+AddLagButton("💥 Chế độ 3: Potato Mode (Max FPS)", "Xóa sạch hiệu ứng hạt, khói, lửa, hạ cấp render tối đa.", Color3.fromRGB(230, 60, 60), function()
     pcall(function()
+        Lighting.Technology = Enum.LightingTechnology.Compatibility
         Lighting.GlobalShadows = false
         settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
         for _, v in pairs(Lighting:GetChildren()) do v:Destroy() end
         for _, obj in pairs(Workspace:GetDescendants()) do
-            if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
+            if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") or obj:IsA("Explosion") then
                 obj:Destroy()
             elseif obj:IsA("BasePart") then
                 obj.Material = Enum.Material.SmoothPlastic
@@ -427,12 +433,14 @@ AddLagButton("💥 Chế độ 3: Potato Mode", "Xóa sạch hiệu ứng hạt,
                 obj:Destroy()
             end
         end
-        print("[Furina Hub] Potato Mode Applied!")
+        print("[Furina Hub] Extreme Potato Mode Applied!")
     end)
 end)
 
-AddLagButton("🌌 Chế độ 4: Ultra Fix Lag", "Xóa toàn bộ map thừa, giữ nguyên NPC/Mob.", Color3.fromRGB(150, 50, 250), function()
+-- Chế độ 4: Ultra Fix Lag (Xóa map, giữ NPC)
+AddLagButton("🌌 Chế độ 4: Ultra Fix Lag", "Xóa sạch cảnh vật thừa, chỉ giữ lại nhân vật và NPC/Mob.", Color3.fromRGB(150, 50, 250), function()
     pcall(function()
+        Lighting.Technology = Enum.LightingTechnology.Compatibility
         for _, obj in pairs(Workspace:GetChildren()) do
             if obj ~= Camera and not obj:IsA("Terrain") then
                 local hasHumanoid = obj:FindFirstChildOfClass("Humanoid") or obj:FindFirstChildWhichIsA("Humanoid", true)
@@ -874,4 +882,4 @@ end)
 
 MakeDraggable(WinTopBar, QuickWindow)
 
-print("[Furina Hub v3.18] Loaded successfully with Clean UI Names & Uncapped FPS!")
+print("[Furina Hub v3.19] Loaded successfully with Massive FPS Boost & Clean UI!")
