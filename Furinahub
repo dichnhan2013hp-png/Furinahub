@@ -1,6 +1,6 @@
 -- ==============================================================================
--- [ROBLOX LUAU UNC-COMPLIANT: FURINA HUB - ULTIMATE DASHBOARD v3.19]
--- Massive FPS Boost Modes, Annihilation Touch Kill, Anti-Die, Anti-Fling, Pro Aimbot & Uncapped FPS
+-- [ROBLOX LUAU UNC-COMPLIANT: FURINA HUB - ULTIMATE DASHBOARD v3.20]
+-- Fixed Loop Leak on Toggle, Added Low-Player Server Hop Tab, Massive FPS Boost
 -- ==============================================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -9,20 +9,22 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
 local Camera = Workspace.CurrentCamera
 
 local LocalPlayer = Players.LocalPlayer
 local ParentGui = (gethui and gethui()) or CoreGui or LocalPlayer:WaitForChild("PlayerGui")
 
 -- 1. IDEMPOTENT CLEANUP
-local guiName = "FurinaHub_v319"
+local guiName = "FurinaHub_v320"
 if ParentGui:FindFirstChild(guiName) then
     ParentGui[guiName]:Destroy()
 end
 
--- 2. ORIGINAL ROBUST ASSET PIPELINE (Using original working image link)
+-- 2. ORIGINAL ROBUST ASSET PIPELINE
 local imageUrl = "https://zaygip.vercel.app/api/chat?action=raw_image&id=0602157cbd40b833f65d66c4ddd8f943"
-local filename = "furina_original_v319.png"
+local filename = "furina_original_v320.png"
 local getAsset = getcustomasset or getsynasset
 local assetPath = ""
 
@@ -93,7 +95,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Floating Toggle Button (Nút mở/đóng menu dùng ảnh gốc)
+-- Floating Toggle Button (Nút mở/đóng menu)
 local ToggleBtn = Instance.new("ImageButton")
 ToggleBtn.Name = "ToggleBtn"
 ToggleBtn.Size = UDim2.new(0, 56, 0, 56)
@@ -113,7 +115,7 @@ ToggleStroke.Color = Color3.fromRGB(0, 190, 255)
 ToggleStroke.Thickness = 2.5
 ToggleStroke.Parent = ToggleBtn
 
--- Main Window (Giao diện chính v3.19)
+-- Main Window (Giao diện chính v3.20)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 560, 0, 380)
@@ -128,7 +130,7 @@ local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 14)
 MainCorner.Parent = MainFrame
 
--- Z-INDEX LAYER 1: Background Image (Dùng ảnh gốc)
+-- Z-INDEX LAYER 1: Background Image
 if assetPath ~= "" then
     local BgImage = Instance.new("ImageLabel")
     BgImage.Size = UDim2.new(1, 0, 1, 0)
@@ -171,7 +173,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -100, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "💧 FURINA HUB | Ultimate Dashboard v3.19"
+Title.Text = "💧 FURINA HUB | Ultimate Dashboard v3.20"
 Title.TextColor3 = Color3.fromRGB(220, 240, 255)
 Title.TextSize = 14
 Title.Font = Enum.Font.GothamBold
@@ -327,11 +329,12 @@ local function CreateTab(name)
     return page
 end
 
--- 6. TABS CREATION (Fix Lag & Other)
+-- 6. TABS CREATION (Fix Lag, Other, Hop)
 local fixLagTab = CreateTab("Fix Lag")
 local otherTab = CreateTab("Other")
+local hopTab = CreateTab("Hop")
 
--- --- TAB 1: FIX LAG (Massive FPS Boost Modes) ---
+-- --- TAB 1: FIX LAG ---
 local function AddLagButton(title, desc, color, callback)
     local card = Instance.new("TextButton")
     card.Size = UDim2.new(1, 0, 0, 52)
@@ -378,7 +381,6 @@ local function AddLagButton(title, desc, color, callback)
     card.MouseButton1Click:Connect(callback)
 end
 
--- Chế độ 1: Tối ưu ánh sáng & Chuyển Compatibility Mode
 AddLagButton("⚡ Chế độ 1: Fix Lag Nhẹ", "Chuyển Lighting sang Compatibility, tắt bóng & PostEffect.", Color3.fromRGB(50, 130, 220), function()
     pcall(function()
         Lighting.Technology = Enum.LightingTechnology.Compatibility
@@ -391,11 +393,9 @@ AddLagButton("⚡ Chế độ 1: Fix Lag Nhẹ", "Chuyển Lighting sang Compati
             workspace.Terrain.WaterWaveSize = 0
             workspace.Terrain.WaterTransparency = 1
         end
-        print("[Furina Hub] Massive Light Fix Applied!")
     end)
 end)
 
--- Chế độ 2: Ép nhựa mịn toàn bộ map & xóa texture
 AddLagButton("🔥 Chế độ 2: Fix Lag Vừa Phải", "Ép toàn bộ map sang nhựa mịn, ẩn sạch Decal/Texture.", Color3.fromRGB(220, 150, 40), function()
     pcall(function()
         Lighting.Technology = Enum.LightingTechnology.Compatibility
@@ -412,11 +412,9 @@ AddLagButton("🔥 Chế độ 2: Fix Lag Vừa Phải", "Ép toàn bộ map san
                 part.Transparency = 1
             end
         end
-        print("[Furina Hub] Massive Material Fix Applied!")
     end)
 end)
 
--- Chế độ 3: Potato Mode cực mạnh (Xóa sạch mọi hiệu ứng hạt, khói, lửa)
 AddLagButton("💥 Chế độ 3: Potato Mode (Max FPS)", "Xóa sạch hiệu ứng hạt, khói, lửa, hạ cấp render tối đa.", Color3.fromRGB(230, 60, 60), function()
     pcall(function()
         Lighting.Technology = Enum.LightingTechnology.Compatibility
@@ -433,11 +431,9 @@ AddLagButton("💥 Chế độ 3: Potato Mode (Max FPS)", "Xóa sạch hiệu �
                 obj:Destroy()
             end
         end
-        print("[Furina Hub] Extreme Potato Mode Applied!")
     end)
 end)
 
--- Chế độ 4: Ultra Fix Lag (Xóa map, giữ NPC)
 AddLagButton("🌌 Chế độ 4: Ultra Fix Lag", "Xóa sạch cảnh vật thừa, chỉ giữ lại nhân vật và NPC/Mob.", Color3.fromRGB(150, 50, 250), function()
     pcall(function()
         Lighting.Technology = Enum.LightingTechnology.Compatibility
@@ -456,13 +452,31 @@ AddLagButton("🌌 Chế độ 4: Ultra Fix Lag", "Xóa sạch cảnh vật th�
                 end
             end
         end
-        print("[Furina Hub] Ultra Fix Lag Applied!")
     end)
 end)
 
 
--- --- TAB 2: OTHER (Clean & Short Names, Clear States) ---
-local function AddOtherToggle(parentPage, titleText, descText, accentColor, callback)
+-- --- TAB 2: OTHER (Fixed Toggle Leak Bug) ---
+local ActiveStates = {
+    TouchKill = false,
+    AntiDie = false,
+    AntiFling = false,
+    Aimbot = false
+}
+
+local ActiveConnections = {
+    TouchKill = {},
+    AntiDie1 = nil,
+    AntiDie2 = nil,
+    AntiFling = nil
+}
+
+local AimbotConfig = {
+    TargetPart = "Head",
+    TeamCheck = true
+}
+
+local function AddOtherToggle(parentPage, titleText, descText, accentColor, stateKey, onEnable, onDisable)
     local card = Instance.new("TextButton")
     card.Size = UDim2.new(1, 0, 0, 52)
     card.BackgroundColor3 = Color3.fromRGB(18, 24, 38)
@@ -505,100 +519,86 @@ local function AddOtherToggle(parentPage, titleText, descText, accentColor, call
     descLbl.ZIndex = 3
     descLbl.Parent = card
 
-    local state = false
     card.MouseButton1Click:Connect(function()
-        state = not state
-        if state then
+        ActiveStates[stateKey] = not ActiveStates[stateKey]
+        local isEnabled = ActiveStates[stateKey]
+        if isEnabled then
             titleLbl.Text = titleText .. "  [ ON ]"
             titleLbl.TextColor3 = Color3.fromRGB(50, 255, 100)
             cardStroke.Color = Color3.fromRGB(50, 255, 100)
+            onEnable()
         else
             titleLbl.Text = titleText .. "  [ OFF ]"
             titleLbl.TextColor3 = Color3.fromRGB(240, 245, 255)
             cardStroke.Color = accentColor
+            onDisable()
         end
-        callback(state)
     end)
 end
 
--- Global Configs for Pro Aimbot
-local AimbotConfig = {
-    Enabled = false,
-    TargetPart = "Head",
-    TeamCheck = true
-}
-
--- 1. Touch Kill
-local _G_TouchKill = false
-AddOtherToggle(otherTab, "💀 Touch Kill", "Hất văng & phá hủy người chơi chạm vào bạn.", Color3.fromRGB(255, 50, 50), function(state)
-    _G_TouchKill = state
-    task.spawn(function()
-        local connections = {}
-        if _G_TouchKill then
-            local function setupCharacter(char)
-                for _, part in pairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        local conn = part.Touched:Connect(function(hit)
-                            if not _G_TouchKill then return end
-                            local hitChar = hit.Parent
-                            local hitPlayer = Players:GetPlayerFromCharacter(hitChar)
-                            if hitPlayer and hitPlayer ~= LocalPlayer then
-                                pcall(function()
-                                    local targetHrp = hitChar:FindFirstChild("HumanoidRootPart")
-                                    local targetHum = hitChar:FindFirstChildOfClass("Humanoid")
-                                    if targetHrp then
-                                        targetHrp.AssemblyLinearVelocity = Vector3.new(999999, 999999, 999999)
-                                        targetHrp.AssemblyAngularVelocity = Vector3.new(999999, 999999, 999999)
-                                        targetHrp.CFrame = CFrame.new(0, -99999, 0)
-                                    end
-                                    if targetHum then
-                                        targetHum.Health = -math.huge
-                                        targetHum:BreakJoints()
-                                    end
-                                end)
-                            end
-                        end)
-                        table.insert(connections, conn)
-                    end
-                end
-            end
-            if LocalPlayer.Character then setupCharacter(LocalPlayer.Character) end
-            LocalPlayer.CharacterAdded:Connect(setupCharacter)
-        else
-            for _, conn in pairs(connections) do conn:Disconnect() end
-        end
-    end)
-end)
-
--- 2. Anti-Die
-local _G_AntiDie = false
-AddOtherToggle(otherTab, "💖 Anti-Die", "Bất tử tuyệt đối, chống chết mọi hình thức.", Color3.fromRGB(0, 255, 150), function(state)
-    _G_AntiDie = state
-    task.spawn(function()
-        local c1, c2
-        if _G_AntiDie then
-            local function protect(char)
-                local hum = char:WaitForChild("Humanoid", 5)
-                local hrp = char:WaitForChild("HumanoidRootPart", 5)
-                if hum then
-                    c1 = hum.HealthChanged:Connect(function(health)
-                        if _G_AntiDie and health < hum.MaxHealth then hum.Health = hum.MaxHealth end
-                    end)
-                    c2 = hum.StateChanged:Connect(function(_, newState)
-                        if _G_AntiDie and (newState == Enum.HumanoidStateType.Dead or newState == Enum.HumanoidStateType.FallingDown) then
-                            hum:ChangeState(Enum.HumanoidStateType.Running)
-                            hum.Health = hum.MaxHealth
+-- 1. Touch Kill (Clean Disable)
+AddOtherToggle(otherTab, "💀 Touch Kill", "Hất văng & phá hủy người chơi chạm vào bạn.", Color3.fromRGB(255, 50, 50), "TouchKill",
+    function() -- ON
+        local function setupCharacter(char)
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    local conn = part.Touched:Connect(function(hit)
+                        if not ActiveStates.TouchKill then return end
+                        local hitChar = hit.Parent
+                        local hitPlayer = Players:GetPlayerFromCharacter(hitChar)
+                        if hitPlayer and hitPlayer ~= LocalPlayer then
+                            pcall(function()
+                                local targetHrp = hitChar:FindFirstChild("HumanoidRootPart")
+                                local targetHum = hitChar:FindFirstChildOfClass("Humanoid")
+                                if targetHrp then
+                                    targetHrp.AssemblyLinearVelocity = Vector3.new(999999, 999999, 999999)
+                                    targetHrp.AssemblyAngularVelocity = Vector3.new(999999, 999999, 999999)
+                                    targetHrp.CFrame = CFrame.new(0, -99999, 0)
+                                end
+                                if targetHum then
+                                    targetHum.Health = -math.huge
+                                    targetHum:BreakJoints()
+                                end
+                            end)
                         end
                     end)
-                    hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
-                    hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
-                    hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+                    table.insert(ActiveConnections.TouchKill, conn)
                 end
             end
-            if LocalPlayer.Character then protect(LocalPlayer.Character) end
-            LocalPlayer.CharacterAdded:Connect(protect)
+        end
+        if LocalPlayer.Character then setupCharacter(LocalPlayer.Character) end
+    end,
+    function() -- OFF
+        for _, conn in pairs(ActiveConnections.TouchKill) do
+            if conn then conn:Disconnect() end
+        end
+        ActiveConnections.TouchKill = {}
+    end
+)
 
-            while _G_AntiDie do
+-- 2. Anti-Die (Clean Disable)
+AddOtherToggle(otherTab, "💖 Anti-Die", "Bất tử tuyệt đối, chống chết mọi hình thức.", Color3.fromRGB(0, 255, 150), "AntiDie",
+    function() -- ON
+        local function protect(char)
+            local hum = char:WaitForChild("Humanoid", 5)
+            if hum then
+                ActiveConnections.AntiDie1 = hum.HealthChanged:Connect(function(health)
+                    if ActiveStates.AntiDie and health < hum.MaxHealth then hum.Health = hum.MaxHealth end
+                end)
+                ActiveConnections.AntiDie2 = hum.StateChanged:Connect(function(_, newState)
+                    if ActiveStates.AntiDie and (newState == Enum.HumanoidStateType.Dead or newState == Enum.HumanoidStateType.FallingDown) then
+                        hum:ChangeState(Enum.HumanoidStateType.Running)
+                        hum.Health = hum.MaxHealth
+                    end
+                end)
+                hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+                hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+            end
+        end
+        if LocalPlayer.Character then protect(LocalPlayer.Character) end
+        
+        task.spawn(function()
+            while ActiveStates.AntiDie do
                 RunService.RenderStepped:Wait()
                 pcall(function()
                     local char = LocalPlayer.Character
@@ -613,20 +613,22 @@ AddOtherToggle(otherTab, "💖 Anti-Die", "Bất tử tuyệt đối, chống ch
                     end
                 end)
             end
-        else
-            if c1 then c1:Disconnect() end
-            if c2 then c2:Disconnect() end
+        end)
+    end,
+    function() -- OFF
+        if ActiveConnections.AntiDie1 then ActiveConnections.AntiDie1:Disconnect() end
+        if ActiveConnections.AntiDie2 then ActiveConnections.AntiDie2:Disconnect() end
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+            LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):SetStateEnabled(Enum.HumanoidStateType.Dead, true)
         end
-    end)
-end)
+    end
+)
 
--- 3. Anti-Fling
-local _G_AntiFling = false
-AddOtherToggle(otherTab, "🛡️ Anti-Fling", "Chống văng bởi scripts, players và mobs.", Color3.fromRGB(255, 120, 0), function(state)
-    _G_AntiFling = state
-    task.spawn(function()
-        while _G_AntiFling do
-            RunService.Stepped:Wait()
+-- 3. Anti-Fling (Clean Disable)
+AddOtherToggle(otherTab, "🛡️ Anti-Fling", "Chống văng bởi scripts, players và mobs.", Color3.fromRGB(255, 120, 0), "AntiFling",
+    function() -- ON
+        ActiveConnections.AntiFling = RunService.Stepped:Connect(function()
+            if not ActiveStates.AntiFling then return end
             pcall(function()
                 local char = LocalPlayer.Character
                 if char and char:FindFirstChild("HumanoidRootPart") then
@@ -644,34 +646,48 @@ AddOtherToggle(otherTab, "🛡️ Anti-Fling", "Chống văng bởi scripts, pla
                     end
                 end
             end)
-        end
-    end)
-end)
+        end)
+    end,
+    function() -- OFF
+        if ActiveConnections.AntiFling then ActiveConnections.AntiFling:Disconnect() end
+    end
+)
 
--- 4. Pro Aimbot
-local _G_Aimbot = false
-AddOtherToggle(otherTab, "🎯 Pro Aimbot", "Tâm ngắm tự động khóa mục tiêu & mobs.", Color3.fromRGB(0, 180, 255), function(state)
-    AimbotConfig.Enabled = state
-    task.spawn(function()
-        while AimbotConfig.Enabled do
-            RunService.RenderStepped:Wait()
-            pcall(function()
-                local char = LocalPlayer.Character
-                if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-                local myPos = char.HumanoidRootPart.Position
-                
-                local closestTarget = nil
-                local shortestDist = math.huge
-                
-                for _, p in pairs(Players:GetPlayers()) do
-                    if p ~= LocalPlayer then
-                        local isTeamMate = false
-                        if AimbotConfig.TeamCheck and LocalPlayer.Team and p.Team == LocalPlayer.Team then
-                            isTeamMate = true
+-- 4. Pro Aimbot (Clean Disable)
+AddOtherToggle(otherTab, "🎯 Pro Aimbot", "Tâm ngắm tự động khóa mục tiêu & mobs.", Color3.fromRGB(0, 180, 255), "Aimbot",
+    function() -- ON
+        task.spawn(function()
+            while ActiveStates.Aimbot do
+                RunService.RenderStepped:Wait()
+                pcall(function()
+                    local char = LocalPlayer.Character
+                    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+                    local myPos = char.HumanoidRootPart.Position
+                    local closestTarget = nil
+                    local shortestDist = math.huge
+                    
+                    for _, p in pairs(Players:GetPlayers()) do
+                        if p ~= LocalPlayer then
+                            local isTeamMate = false
+                            if AimbotConfig.TeamCheck and LocalPlayer.Team and p.Team == LocalPlayer.Team then isTeamMate = true end
+                            if not isTeamMate and p.Character then
+                                local hum = p.Character:FindFirstChildOfClass("Humanoid")
+                                local part = p.Character:FindFirstChild(AimbotConfig.TargetPart) or p.Character:FindFirstChild("HumanoidRootPart")
+                                if hum and part and hum.Health > 0 then
+                                    local dist = (part.Position - myPos).Magnitude
+                                    if dist < shortestDist then
+                                        shortestDist = dist
+                                        closestTarget = part
+                                    end
+                                end
+                            end
                         end
-                        if not isTeamMate and p.Character then
-                            local hum = p.Character:FindFirstChildOfClass("Humanoid")
-                            local part = p.Character:FindFirstChild(AimbotConfig.TargetPart) or p.Character:FindFirstChild("HumanoidRootPart")
+                    end
+
+                    for _, obj in pairs(Workspace:GetDescendants()) do
+                        if obj:IsA("Model") and obj ~= char and not Players:GetPlayerFromCharacter(obj) then
+                            local hum = obj:FindFirstChildOfClass("Humanoid")
+                            local part = obj:FindFirstChild(AimbotConfig.TargetPart) or obj:FindFirstChild("HumanoidRootPart") or obj.PrimaryPart
                             if hum and part and hum.Health > 0 then
                                 local dist = (part.Position - myPos).Magnitude
                                 if dist < shortestDist then
@@ -681,29 +697,16 @@ AddOtherToggle(otherTab, "🎯 Pro Aimbot", "Tâm ngắm tự động khóa mụ
                             end
                         end
                     end
-                end
-
-                for _, obj in pairs(Workspace:GetDescendants()) do
-                    if obj:IsA("Model") and obj ~= char and not Players:GetPlayerFromCharacter(obj) then
-                        local hum = obj:FindFirstChildOfClass("Humanoid")
-                        local part = obj:FindFirstChild(AimbotConfig.TargetPart) or obj:FindFirstChild("HumanoidRootPart") or obj.PrimaryPart
-                        if hum and part and hum.Health > 0 then
-                            local dist = (part.Position - myPos).Magnitude
-                            if dist < shortestDist then
-                                shortestDist = dist
-                                closestTarget = part
-                            end
-                        end
+                    
+                    if closestTarget then
+                        Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, closestTarget.Position)
                     end
-                end
-                
-                if closestTarget then
-                    Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, closestTarget.Position)
-                end
-            end)
-        end
-    end)
-end)
+                end)
+            end
+        end)
+    end,
+    function() end -- OFF
+)
 
 -- Quick Settings Button (Mở cửa sổ cấu hình nhanh Aimbot)
 local QuickSettingsBtn = Instance.new("TextButton")
@@ -727,7 +730,7 @@ QuickStroke.Transparency = 0.5
 QuickStroke.Thickness = 1.2
 QuickStroke.Parent = QuickSettingsBtn
 
--- Tạo Popup Cửa Sổ Nhanh (Quick Settings Window - Collapsible & Draggable)
+-- Popup Cửa Sổ Nhanh (Aimbot Quick Window)
 local QuickWindow = Instance.new("Frame")
 QuickWindow.Name = "AimbotQuickWindow"
 QuickWindow.Size = UDim2.new(0, 240, 0, 160)
@@ -769,7 +772,6 @@ WinTitle.TextXAlignment = Enum.TextXAlignment.Left
 WinTitle.ZIndex = 201
 WinTitle.Parent = WinTopBar
 
--- Nút Thu Gọn / Rút Gọn (Minimize Button)
 local WinMinimize = Instance.new("TextButton")
 WinMinimize.Size = UDim2.new(0, 26, 0, 26)
 WinMinimize.Position = UDim2.new(1, -60, 0.5, -13)
@@ -785,7 +787,6 @@ local WinMinCorner = Instance.new("UICorner")
 WinMinCorner.CornerRadius = UDim.new(0, 6)
 WinMinCorner.Parent = WinMinimize
 
--- Nút Đóng (Close Button)
 local WinClose = Instance.new("TextButton")
 WinClose.Size = UDim2.new(0, 26, 0, 26)
 WinClose.Position = UDim2.new(1, -30, 0.5, -13)
@@ -801,7 +802,6 @@ local WinCloseCorner = Instance.new("UICorner")
 WinCloseCorner.CornerRadius = UDim.new(0, 6)
 WinCloseCorner.Parent = WinClose
 
--- Nút đổi Target Part (Head / Torso)
 local PartToggleBtn = Instance.new("TextButton")
 PartToggleBtn.Size = UDim2.new(1, -20, 0, 38)
 PartToggleBtn.Position = UDim2.new(0, 10, 0, 45)
@@ -827,7 +827,6 @@ PartToggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Nút bật tắt Team Check
 local TeamToggleBtn = Instance.new("TextButton")
 TeamToggleBtn.Size = UDim2.new(1, -20, 0, 38)
 TeamToggleBtn.Position = UDim2.new(0, 10, 0, 95)
@@ -854,7 +853,6 @@ TeamToggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Logic Rút gọn / Mở rộng cửa sổ nhanh (Minimize / Maximize)
 local isMinimized = false
 WinMinimize.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
@@ -871,7 +869,6 @@ WinMinimize.MouseButton1Click:Connect(function()
     end
 end)
 
--- Logic mở/đóng cửa sổ nhanh
 QuickSettingsBtn.MouseButton1Click:Connect(function()
     QuickWindow.Visible = not QuickWindow.Visible
 end)
@@ -882,4 +879,96 @@ end)
 
 MakeDraggable(WinTopBar, QuickWindow)
 
-print("[Furina Hub v3.19] Loaded successfully with Massive FPS Boost & Clean UI!")
+
+-- --- TAB 3: HOP (Low-Player Server Hop với nhiều tùy chọn) ---
+local selectedMaxPlayers = 3 -- Mặc định tìm server <= 3 người
+
+local function AddHopOption(maxP, labelText)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 42)
+    btn.BackgroundColor3 = Color3.fromRGB(20, 26, 42)
+    btn.BackgroundTransparency = 0.4
+    btn.Text = "  " .. labelText
+    btn.TextColor3 = Color3.fromRGB(200, 220, 255)
+    btn.TextSize = 12
+    btn.Font = Enum.Font.GothamMedium
+    btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.ZIndex = 3
+    btn.Parent = hopTab
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = btn
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(0, 180, 255)
+    stroke.Transparency = 0.6
+    stroke.Thickness = 1.2
+    stroke.Parent = btn
+
+    btn.MouseButton1Click:Connect(function()
+        selectedMaxPlayers = maxP
+        for _, child in pairs(hopTab:GetChildren()) do
+            if child:IsA("TextButton") and child.Name == "HopOptionBtn" then
+                child.BackgroundColor3 = Color3.fromRGB(20, 26, 42)
+            end
+        end
+        btn.Name = "HopOptionBtn"
+        btn.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+    end)
+end
+
+AddHopOption(1, "🌐 Server Siêu Ít (<= 1 Người Player)")
+AddHopOption(3, "🌐 Server Ít (<= 3 Người Players)")
+AddHopOption(5, "🌐 Server Vừa Phải (<= 5 Người Players)")
+AddHopOption(8, "🌐 Server Trung Bình (<= 8 Người Players)")
+
+-- Nút Chạy Hop Server
+local ExecuteHopBtn = Instance.new("TextButton")
+ExecuteHopBtn.Size = UDim2.new(1, 0, 0, 46)
+ExecuteHopBtn.BackgroundColor3 = Color3.fromRGB(50, 160, 90)
+ExecuteHopBtn.Text = "🚀 BẮT ĐẦU HOP SERVER ÍT NGƯỜI"
+ExecuteHopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ExecuteHopBtn.TextSize = 13
+ExecuteHopBtn.Font = Enum.Font.GothamBold
+ExecuteHopBtn.ZIndex = 3
+ExecuteHopBtn.Parent = hopTab
+
+local HopCorner = Instance.new("UICorner")
+HopCorner.CornerRadius = UDim.new(0, 8)
+HopCorner.Parent = ExecuteHopBtn
+
+local HopStroke = Instance.new("UIStroke")
+HopStroke.Color = Color3.fromRGB(100, 255, 150)
+HopStroke.Thickness = 1.5
+HopStroke.Parent = ExecuteHopBtn
+
+ExecuteHopBtn.MouseButton1Click:Connect(function()
+    ExecuteHopBtn.Text = "⏳ Đang quét danh sách Server..."
+    ExecuteHopBtn.BackgroundColor3 = Color3.fromRGB(200, 140, 30)
+    
+    task.spawn(function()
+        pcall(function()
+            local placeId = game.PlaceId
+            local reqUrl = string.format("https://games.roblox.com/v1/games/%d/servers/0?sortOrder=Asc&limit=100", placeId)
+            local rawData = game:HttpGet(reqUrl)
+            local decoded = HttpService:JSONDecode(rawData)
+            
+            if decoded and decoded.data then
+                for _, server in pairs(decoded.data) do
+                    if server.id ~= game.JobId and server.playing <= selectedMaxPlayers and server.playing > 0 then
+                        ExecuteHopBtn.Text = string.format("🌐 Đã tìm thấy Server (%d người)! Đang chuyển...", server.playing)
+                        TeleportService:TeleportToPlaceInstance(placeId, server.id, LocalPlayer)
+                        return
+                    end
+                end
+            end
+            ExecuteHopBtn.Text = "❌ Không tìm thấy Server phù hợp! Thử lại sau."
+            task.wait(2)
+            ExecuteHopBtn.Text = "🚀 BẮT ĐẦU HOP SERVER ÍT NGƯỜI"
+            ExecuteHopBtn.BackgroundColor3 = Color3.fromRGB(50, 160, 90)
+        end)
+    end)
+end)
+
+print("[Furina Hub v3.20] Loaded successfully with Server Hop Tab & Clean Toggle State Engine!")
