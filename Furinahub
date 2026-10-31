@@ -1,6 +1,6 @@
 -- ==============================================================================
--- [ROBLOX LUAU UNC-COMPLIANT: FURINA HUB - ULTIMATE DASHBOARD v3.22]
--- Blox Fruits Specialized Kill Aura (Melee/Fruit Auto-Equip & Attack Engine)
+-- [ROBLOX LUAU UNC-COMPLIANT: FURINA HUB - ULTIMATE DASHBOARD v3.23]
+-- Upgraded Ultra-Extreme Potato Mode 3 (Maximum Graphic Stripping & Max FPS)
 -- ==============================================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -18,14 +18,14 @@ local LocalPlayer = Players.LocalPlayer
 local ParentGui = (gethui and gethui()) or CoreGui or LocalPlayer:WaitForChild("PlayerGui")
 
 -- 1. IDEMPOTENT CLEANUP
-local guiName = "FurinaHub_v322"
+local guiName = "FurinaHub_v323"
 if ParentGui:FindFirstChild(guiName) then
     ParentGui[guiName]:Destroy()
 end
 
 -- 2. ORIGINAL ROBUST ASSET PIPELINE
 local imageUrl = "https://zaygip.vercel.app/api/chat?action=raw_image&id=0602157cbd40b833f65d66c4ddd8f943"
-local filename = "furina_original_v322.png"
+local filename = "furina_original_v323.png"
 local getAsset = getcustomasset or getsynasset
 local assetPath = ""
 
@@ -116,7 +116,7 @@ ToggleStroke.Color = Color3.fromRGB(0, 190, 255)
 ToggleStroke.Thickness = 2.5
 ToggleStroke.Parent = ToggleBtn
 
--- Main Window (Giao diện chính v3.22)
+-- Main Window (Giao diện chính v3.23)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 560, 0, 380)
@@ -174,7 +174,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -100, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "💧 FURINA HUB | Ultimate Dashboard v3.22"
+Title.Text = "💧 FURINA HUB | Ultimate Dashboard v3.23"
 Title.TextColor3 = Color3.fromRGB(220, 240, 255)
 Title.TextSize = 14
 Title.Font = Enum.Font.GothamBold
@@ -416,20 +416,47 @@ AddLagButton("🔥 Chế độ 2: Fix Lag Vừa Phải", "Ép toàn bộ map san
     end)
 end)
 
-AddLagButton("💥 Chế độ 3: Potato Mode (Max FPS)", "Xóa sạch hiệu ứng hạt, khói, lửa, hạ cấp render tối đa.", Color3.fromRGB(230, 60, 60), function()
+-- MỚI: Chế độ 3 - Ultra Extreme Potato Mode (Xóa triệt để hiệu ứng nặng & Ép đồ họa cực hạn)
+AddLagButton("💥 Chế độ 3: Potato Mode (Max Graphics Strip)", "Hạ render Level01, xóa sạch 100% hiệu ứng hạt, bóng & đồ họa cực hạn.", Color3.fromRGB(230, 60, 60), function()
     pcall(function()
+        -- 1. Ép công nghệ chiếu sáng & hạ chất lượng Render của Roblox về thấp nhất
         Lighting.Technology = Enum.LightingTechnology.Compatibility
         Lighting.GlobalShadows = false
+        Lighting.FogEnd = 999999
+        Lighting.Brightness = 1
         settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-        for _, v in pairs(Lighting:GetChildren()) do v:Destroy() end
+
+        -- 2. Xóa sạch mọi hiệu ứng hậu kỳ, bầu trời, ánh sáng trong Lighting
+        for _, v in pairs(Lighting:GetChildren()) do
+            if v:IsA("PostEffect") or v:IsA("Atmosphere") or v:IsA("Sky") or v:IsA("SunRaysEffect") or v:IsA("BloomEffect") or v:IsA("BlurEffect") or v:IsA("ColorCorrectionEffect") or v:IsA("DepthOfFieldEffect") then
+                v:Destroy()
+            end
+        end
+
+        -- 3. Xóa nước Terrain
+        if workspace:FindFirstChildOfClass("Terrain") then
+            local terrain = workspace:FindFirstChildOfClass("Terrain")
+            terrain.WaterWaveSize = 0
+            terrain.WaterWaveSpeed = 0
+            terrain.WaterReflectance = 0
+            terrain.WaterTransparency = 1
+        end
+
+        -- 4. Quét toàn bộ Workspace tiêu diệt 100% các thành phần đồ họa nặng
         for _, obj in pairs(Workspace:GetDescendants()) do
-            if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") or obj:IsA("Explosion") then
+            if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Beam") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") or obj:IsA("Explosion") or obj:IsA("Light") or obj:IsA("PointLight") or obj:IsA("SpotLight") or obj:IsA("SurfaceLight") then
                 obj:Destroy()
             elseif obj:IsA("BasePart") then
                 obj.Material = Enum.Material.SmoothPlastic
+                obj.Reflectance = 0
                 obj.CastShadow = false
             elseif obj:IsA("Decal") or obj:IsA("Texture") then
                 obj:Destroy()
+            elseif obj:IsA("MeshPart") then
+                obj.Material = Enum.Material.SmoothPlastic
+                obj.Reflectance = 0
+                obj.CastShadow = false
+                obj.TextureID = ""
             end
         end
     end)
@@ -457,7 +484,7 @@ AddLagButton("🌌 Chế độ 4: Ultra Fix Lag", "Xóa sạch cảnh vật th�
 end)
 
 
--- --- TAB 2: OTHER (Blox Fruits Specialized Aura) ---
+-- --- TAB 2: OTHER ---
 local ActiveStates = {
     BloxAura = false,
     TouchKill = false,
@@ -538,7 +565,7 @@ local function AddOtherToggle(parentPage, titleText, descText, accentColor, stat
     end)
 end
 
--- MỚI: Blox Fruits Kill Aura (Tự động cầm Melee/Fruit và tấn công Quái)
+-- Blox Fruits Kill Aura
 AddOtherToggle(otherTab, "⚔️ Blox Fruits Kill Aura", "Tự động cầm Melee/Trái và đánh Quái xung quanh (Chỉ Blox Fruits).", Color3.fromRGB(255, 150, 0), "BloxAura",
     function() -- ON
         task.spawn(function()
@@ -550,7 +577,6 @@ AddOtherToggle(otherTab, "⚔️ Blox Fruits Kill Aura", "Tự động cầm Mel
                     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
                     local myPos = char.HumanoidRootPart.Position
 
-                    -- 1. Auto Equip Melee hoặc Blox Fruit từ Backpack nếu chưa cầm
                     local tool = char:FindFirstChildOfClass("Tool")
                     if not tool then
                         local backpack = LocalPlayer:FindFirstChild("Backpack")
@@ -564,7 +590,6 @@ AddOtherToggle(otherTab, "⚔️ Blox Fruits Kill Aura", "Tự động cầm Mel
                         end
                     end
 
-                    -- 2. Quét Quái xung quanh & Đánh
                     local enemiesFolder = Workspace:FindFirstChild("Enemies") or Workspace
                     for _, mob in pairs(enemiesFolder:GetChildren()) do
                         if not ActiveStates.BloxAura then break end
@@ -575,7 +600,6 @@ AddOtherToggle(otherTab, "⚔️ Blox Fruits Kill Aura", "Tự động cầm Mel
                             if hum and root and hum.Health > 0 then
                                 local dist = (root.Position - myPos).Magnitude
                                 if dist <= attackRadius then
-                                    -- Kích hoạt đòn đánh liên tục thông qua VirtualUser Click
                                     VirtualUser:CaptureController()
                                     VirtualUser:Button1Down(Vector2.new(0, 0), Camera.CFrame)
                                 end
@@ -849,7 +873,7 @@ WinClose.TextColor3 = Color3.fromRGB(255, 255, 255)
 WinClose.TextSize = 12
 WinClose.Font = Enum.Font.GothamBold
 WinClose.ZIndex = 201
-WinClose.Parent = WinTopBar
+WinClose.Parent = QuickWindow
 
 local WinCloseCorner = Instance.new("UICorner")
 WinCloseCorner.CornerRadius = UDim.new(0, 6)
@@ -1023,4 +1047,4 @@ ExecuteHopBtn.MouseButton1Click:Connect(function()
     end)
 end)
 
-print("[Furina Hub v3.22] Loaded successfully with Blox Fruits Specialized Kill Aura!")
+print("[Furina Hub v3.23] Loaded successfully with Upgraded Ultra-Extreme Potato Mode 3!")
