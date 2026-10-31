@@ -1,6 +1,6 @@
 -- ==============================================================================
--- [ROBLOX LUAU UNC-COMPLIANT: FURINA HUB - ULTIMATE DASHBOARD v3.20]
--- Fixed Loop Leak on Toggle, Added Low-Player Server Hop Tab, Massive FPS Boost
+-- [ROBLOX LUAU UNC-COMPLIANT: FURINA HUB - ULTIMATE DASHBOARD v3.22]
+-- Blox Fruits Specialized Kill Aura (Melee/Fruit Auto-Equip & Attack Engine)
 -- ==============================================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -11,20 +11,21 @@ local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
+local VirtualUser = game:GetService("VirtualUser")
 local Camera = Workspace.CurrentCamera
 
 local LocalPlayer = Players.LocalPlayer
 local ParentGui = (gethui and gethui()) or CoreGui or LocalPlayer:WaitForChild("PlayerGui")
 
 -- 1. IDEMPOTENT CLEANUP
-local guiName = "FurinaHub_v320"
+local guiName = "FurinaHub_v322"
 if ParentGui:FindFirstChild(guiName) then
     ParentGui[guiName]:Destroy()
 end
 
 -- 2. ORIGINAL ROBUST ASSET PIPELINE
 local imageUrl = "https://zaygip.vercel.app/api/chat?action=raw_image&id=0602157cbd40b833f65d66c4ddd8f943"
-local filename = "furina_original_v320.png"
+local filename = "furina_original_v322.png"
 local getAsset = getcustomasset or getsynasset
 local assetPath = ""
 
@@ -115,7 +116,7 @@ ToggleStroke.Color = Color3.fromRGB(0, 190, 255)
 ToggleStroke.Thickness = 2.5
 ToggleStroke.Parent = ToggleBtn
 
--- Main Window (Giao diện chính v3.20)
+-- Main Window (Giao diện chính v3.22)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 560, 0, 380)
@@ -173,7 +174,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -100, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "💧 FURINA HUB | Ultimate Dashboard v3.20"
+Title.Text = "💧 FURINA HUB | Ultimate Dashboard v3.22"
 Title.TextColor3 = Color3.fromRGB(220, 240, 255)
 Title.TextSize = 14
 Title.Font = Enum.Font.GothamBold
@@ -456,8 +457,9 @@ AddLagButton("🌌 Chế độ 4: Ultra Fix Lag", "Xóa sạch cảnh vật th�
 end)
 
 
--- --- TAB 2: OTHER (Fixed Toggle Leak Bug) ---
+-- --- TAB 2: OTHER (Blox Fruits Specialized Aura) ---
 local ActiveStates = {
+    BloxAura = false,
     TouchKill = false,
     AntiDie = false,
     AntiFling = false,
@@ -536,7 +538,58 @@ local function AddOtherToggle(parentPage, titleText, descText, accentColor, stat
     end)
 end
 
--- 1. Touch Kill (Clean Disable)
+-- MỚI: Blox Fruits Kill Aura (Tự động cầm Melee/Fruit và tấn công Quái)
+AddOtherToggle(otherTab, "⚔️ Blox Fruits Kill Aura", "Tự động cầm Melee/Trái và đánh Quái xung quanh (Chỉ Blox Fruits).", Color3.fromRGB(255, 150, 0), "BloxAura",
+    function() -- ON
+        task.spawn(function()
+            local attackRadius = 100
+            while ActiveStates.BloxAura do
+                RunService.RenderStepped:Wait()
+                pcall(function()
+                    local char = LocalPlayer.Character
+                    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+                    local myPos = char.HumanoidRootPart.Position
+
+                    -- 1. Auto Equip Melee hoặc Blox Fruit từ Backpack nếu chưa cầm
+                    local tool = char:FindFirstChildOfClass("Tool")
+                    if not tool then
+                        local backpack = LocalPlayer:FindFirstChild("Backpack")
+                        if backpack then
+                            for _, item in pairs(backpack:GetChildren()) do
+                                if item:IsA("Tool") and (item.ToolTip == "Melee" or item.ToolTip == "Blox Fruit" or item.ToolTip == "Sword") then
+                                    char.Humanoid:EquipTool(item)
+                                    break
+                                end
+                            end
+                        end
+                    end
+
+                    -- 2. Quét Quái xung quanh & Đánh
+                    local enemiesFolder = Workspace:FindFirstChild("Enemies") or Workspace
+                    for _, mob in pairs(enemiesFolder:GetChildren()) do
+                        if not ActiveStates.BloxAura then break end
+                        if mob:IsA("Model") and mob ~= char and not Players:GetPlayerFromCharacter(mob) then
+                            local hum = mob:FindFirstChildOfClass("Humanoid")
+                            local root = mob:FindFirstChild("HumanoidRootPart") or mob.PrimaryPart
+                            
+                            if hum and root and hum.Health > 0 then
+                                local dist = (root.Position - myPos).Magnitude
+                                if dist <= attackRadius then
+                                    -- Kích hoạt đòn đánh liên tục thông qua VirtualUser Click
+                                    VirtualUser:CaptureController()
+                                    VirtualUser:Button1Down(Vector2.new(0, 0), Camera.CFrame)
+                                end
+                            end
+                        end
+                    end
+                end)
+            end
+        end)
+    end,
+    function() end -- OFF
+)
+
+-- 1. Touch Kill
 AddOtherToggle(otherTab, "💀 Touch Kill", "Hất văng & phá hủy người chơi chạm vào bạn.", Color3.fromRGB(255, 50, 50), "TouchKill",
     function() -- ON
         local function setupCharacter(char)
@@ -576,7 +629,7 @@ AddOtherToggle(otherTab, "💀 Touch Kill", "Hất văng & phá hủy người c
     end
 )
 
--- 2. Anti-Die (Clean Disable)
+-- 2. Anti-Die
 AddOtherToggle(otherTab, "💖 Anti-Die", "Bất tử tuyệt đối, chống chết mọi hình thức.", Color3.fromRGB(0, 255, 150), "AntiDie",
     function() -- ON
         local function protect(char)
@@ -624,7 +677,7 @@ AddOtherToggle(otherTab, "💖 Anti-Die", "Bất tử tuyệt đối, chống ch
     end
 )
 
--- 3. Anti-Fling (Clean Disable)
+-- 3. Anti-Fling
 AddOtherToggle(otherTab, "🛡️ Anti-Fling", "Chống văng bởi scripts, players và mobs.", Color3.fromRGB(255, 120, 0), "AntiFling",
     function() -- ON
         ActiveConnections.AntiFling = RunService.Stepped:Connect(function()
@@ -653,7 +706,7 @@ AddOtherToggle(otherTab, "🛡️ Anti-Fling", "Chống văng bởi scripts, pla
     end
 )
 
--- 4. Pro Aimbot (Clean Disable)
+-- 4. Pro Aimbot
 AddOtherToggle(otherTab, "🎯 Pro Aimbot", "Tâm ngắm tự động khóa mục tiêu & mobs.", Color3.fromRGB(0, 180, 255), "Aimbot",
     function() -- ON
         task.spawn(function()
@@ -880,8 +933,8 @@ end)
 MakeDraggable(WinTopBar, QuickWindow)
 
 
--- --- TAB 3: HOP (Low-Player Server Hop với nhiều tùy chọn) ---
-local selectedMaxPlayers = 3 -- Mặc định tìm server <= 3 người
+-- --- TAB 3: HOP ---
+local selectedMaxPlayers = 3
 
 local function AddHopOption(maxP, labelText)
     local btn = Instance.new("TextButton")
@@ -923,7 +976,6 @@ AddHopOption(3, "🌐 Server Ít (<= 3 Người Players)")
 AddHopOption(5, "🌐 Server Vừa Phải (<= 5 Người Players)")
 AddHopOption(8, "🌐 Server Trung Bình (<= 8 Người Players)")
 
--- Nút Chạy Hop Server
 local ExecuteHopBtn = Instance.new("TextButton")
 ExecuteHopBtn.Size = UDim2.new(1, 0, 0, 46)
 ExecuteHopBtn.BackgroundColor3 = Color3.fromRGB(50, 160, 90)
@@ -971,4 +1023,4 @@ ExecuteHopBtn.MouseButton1Click:Connect(function()
     end)
 end)
 
-print("[Furina Hub v3.20] Loaded successfully with Server Hop Tab & Clean Toggle State Engine!")
+print("[Furina Hub v3.22] Loaded successfully with Blox Fruits Specialized Kill Aura!")
