@@ -1,26 +1,41 @@
--- Darkwen V1 | Blox Fruits | Delta | Mobile | Rayfield
+-- Furina Hub | Blox Fruits | Delta | Mobile | Custom UI (Maru style)
 
-if getgenv().DarkwenV1Unload then pcall(getgenv().DarkwenV1Unload) end
+if getgenv().FurinaHubUnload then pcall(getgenv().FurinaHubUnload) end
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 local TeleportService = game:GetService("TeleportService")
 local VirtualUser = game:GetService("VirtualUser")
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CoreGui = game:GetService("CoreGui")
 local Workspace = game:GetService("Workspace")
 
 local LP = Players.LocalPlayer
 local CommF = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommF_")
-local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+
+local LOGO_FILE = "furina.png"
+local LOGO_ASSET = ""
+
+local ACCENT = Color3.fromRGB(110, 170, 255)
+local BG_MAIN = Color3.fromRGB(20, 20, 26)
+local BG_SIDE = Color3.fromRGB(16, 16, 21)
+local BG_ROW = Color3.fromRGB(30, 30, 38)
+local BG_INPUT = Color3.fromRGB(45, 45, 56)
+local OFF = Color3.fromRGB(60, 60, 72)
+local TXT = Color3.fromRGB(235, 235, 240)
+local TI = TweenInfo.new(0.15, Enum.EasingStyle.Quad)
 
 local Running = true
-local Conns, Drawings, Toggles, HitboxOrig, RSpyLog = {}, {}, {}, {}, {}
-local Applied = {Speed = false, Jump = false, Noclip = false}
-local ESPDirty = {player = false, fruit = false, chest = false}
+local Conns, Drawings, HitboxOrig, RSpyLog = {}, {}, {}, {}
+local Setters, Pages, TabBtns = {}, {}, {}
 local selectedPlayer, selectedIsland = nil, nil
-local lastQuestAsk = 0
+local lastQuestTime, lastAttack, lastChestScan = 0, 0, 0
+local espOn = {player = false, fruit = false, chest = false}
+local Popup, Gui, Main, InfoLbl, RSpyPara
+local dragging, dragStart, startPos = false, nil, nil
 
 local S = {
 	Speed = false, SpeedVal = 100,
@@ -63,12 +78,6 @@ local ISLANDS = {
 local function track(c)
 	table.insert(Conns, c)
 	return c
-end
-
-local function notify(title, content)
-	pcall(function()
-		Rayfield:Notify({Title = title, Content = content, Duration = 3})
-	end)
 end
 
 local function char()
@@ -133,14 +142,34 @@ local function getTool(hum)
 	local ch = LP.Character
 	local t = ch and ch:FindFirstChildOfClass("Tool")
 	if t then return t end
-	local bp = LP:FindFirstChildOfClass("Backpack") and LP.Backpack:FindFirstChildOfClass("Tool")
-	if bp and hum then pcall(function() hum:EquipTool(bp) end) end
+	local bp = LP:FindFirstChildOfClass("Backpack")
+	local tool = bp and bp:FindFirstChildOfClass("Tool")
+	if tool and hum then pcall(function() hum:EquipTool(tool) end) end
 	return nil
 end
 
+local function attack(hum, force)
+	if tick() - lastAttack < 0.12 then return end
+	lastAttack = tick()
+	local tool = getTool(hum)
+	if tool then
+		pcall(function() tool:Activate() end)
+	elseif force then
+		pcall(function()
+			local cam = Workspace.CurrentCamera
+			VirtualUser:Button1Down(Vector2.new(0, 0), cam.CFrame)
+			task.wait(0.05)
+			VirtualUser:Button1Up(Vector2.new(0, 0), cam.CFrame)
+		end)
+	end
+end
+
 local function setFlag(key, val)
-	S[key] = val
-	if Toggles[key] then pcall(function() Toggles[key]:Set(val) end) end
+	if Setters[key] then
+		pcall(Setters[key], val)
+	else
+		S[key] = val
+	end
 end
 
 local function makeTag(adornee, withBar, kind)
@@ -150,7 +179,7 @@ local function makeTag(adornee, withBar, kind)
 	bb.Size = UDim2.fromOffset(170, withBar and 44 or 24)
 	bb.StudsOffset = Vector3.new(0, withBar and 2.6 or 1.5, 0)
 	bb.Adornee = adornee
-	bb:SetAttribute("DWKind", kind)
+	bb:SetAttribute("FHKind", kind)
 	bb.Parent = adornee
 
 	local lbl = Instance.new("TextLabel")
@@ -188,7 +217,7 @@ end
 
 local function clearKind(kind)
 	for _, d in ipairs(Workspace:GetDescendants()) do
-		if d.Name == "DW_Tag" and d:GetAttribute("DWKind") == kind then
+		if d.Name == "DW_Tag" and d:GetAttribute("FHKind") == kind then
 			d:Destroy()
 		end
 	end
@@ -213,7 +242,7 @@ local function refreshPlayerESP()
 			local head = ch:FindFirstChild("Head")
 			local hum = ch:FindFirstChildOfClass("Humanoid")
 			local teamHidden = S.ESPTeam and p.Team ~= nil and p.Team == LP.Team
-			if head and hum and S.ESPPlayers and not teamHidden and hum.Health > 0 then
+			if head and hum and not teamHidden and hum.Health > 0 then
 				local cham = ch:FindFirstChild("DW_Cham")
 				if S.ESPChams then
 					if not cham then
@@ -248,20 +277,20 @@ end
 
 local function refreshFruitESP()
 	for _, o in ipairs(Workspace:GetChildren()) do
-		if o:IsA("Tool") and o.Name:find("Fruit") then
+		if o:IsA("Tool") then
 			local h = o:FindFirstChild("Handle")
-			if h and not h:FindFirstChild("DW_Tag") then
-				local bb = makeTag(h, false, "fruit")
-				bb.Info.TextColor3 = Color3.fromRGB(255, 210, 60)
-			end
-			if h and h:FindFirstChild("DW_Tag") then
-				h.DW_Tag.Info.Text = string.format("%s [%dm]", o.Name, distToMe(h.Position))
+			if h then
+				local tag = h:FindFirstChild("DW_Tag")
+				if not tag then
+					tag = makeTag(h, false, "fruit")
+					tag.Info.TextColor3 = Color3.fromRGB(255, 210, 60)
+				end
+				tag.Info.Text = string.format("%s [%dm]", o.Name, distToMe(h.Position))
 			end
 		end
 	end
 end
 
-local lastChestScan = 0
 local function refreshChestESP()
 	if tick() - lastChestScan < 1.5 then return end
 	lastChestScan = tick()
@@ -277,16 +306,12 @@ local function refreshChestESP()
 	end
 end
 
-local function clearPlayerTracers()
-	for _, l in pairs(Drawings) do l.Visible = false end
-end
-
 track(RunService.RenderStepped:Connect(function()
 	local cam = Workspace.CurrentCamera
 	if not cam or typeof(Drawing) ~= "table" then return end
 	local _, myHRP = char()
 	if not (S.ESPTracer and S.ESPPlayers and myHRP) then
-		clearPlayerTracers()
+		for _, l in pairs(Drawings) do l.Visible = false end
 		return
 	end
 	for _, p in ipairs(Players:GetPlayers()) do
@@ -320,30 +345,32 @@ task.spawn(function()
 	while Running do
 		task.wait(0.4)
 		if S.ESPPlayers then
-			ESPDirty.player = true
 			refreshPlayerESP()
-		elseif ESPDirty.player then
+			espOn.player = true
+		elseif espOn.player then
 			clearPlayerESP()
-			ESPDirty.player = false
+			espOn.player = false
 		end
 
 		if S.ESPFruit then
-			ESPDirty.fruit = true
 			refreshFruitESP()
-		elseif ESPDirty.fruit then
+			espOn.fruit = true
+		elseif espOn.fruit then
 			clearKind("fruit")
-			ESPDirty.fruit = false
+			espOn.fruit = false
 		end
 
 		if S.ESPChest then
-			ESPDirty.chest = true
 			refreshChestESP()
-		elseif ESPDirty.chest then
+			espOn.chest = true
+		elseif espOn.chest then
 			clearKind("chest")
-			ESPDirty.chest = false
+			espOn.chest = false
 		end
 	end
 end)
+
+local speedOn, jumpOn, noclipOn = false, false, false
 
 track(RunService.Heartbeat:Connect(function()
 	local ch, hrp, hum = char()
@@ -351,31 +378,31 @@ track(RunService.Heartbeat:Connect(function()
 
 	if S.Speed then
 		hum.WalkSpeed = S.SpeedVal
-		Applied.Speed = true
-	elseif Applied.Speed then
+		speedOn = true
+	elseif speedOn then
 		hum.WalkSpeed = 16
-		Applied.Speed = false
+		speedOn = false
 	end
 
 	if S.Jump then
 		hum.UseJumpPower = true
 		hum.JumpPower = S.JumpVal
-		Applied.Jump = true
-	elseif Applied.Jump then
+		jumpOn = true
+	elseif jumpOn then
 		hum.JumpPower = 50
-		Applied.Jump = false
+		jumpOn = false
 	end
 
 	if S.Noclip then
 		for _, part in ipairs(ch:GetDescendants()) do
 			if part:IsA("BasePart") then part.CanCollide = false end
 		end
-		Applied.Noclip = true
-	elseif Applied.Noclip then
+		noclipOn = true
+	elseif noclipOn then
 		for _, part in ipairs(ch:GetDescendants()) do
 			if part:IsA("BasePart") and part.Name ~= "Handle" then part.CanCollide = true end
 		end
-		Applied.Noclip = false
+		noclipOn = false
 	end
 
 	local bv = hrp:FindFirstChild("DW_Fly")
@@ -386,7 +413,8 @@ track(RunService.Heartbeat:Connect(function()
 			bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
 			bv.Parent = hrp
 		end
-		local look = Workspace.CurrentCamera.CFrame.LookVector
+		local cam = Workspace.CurrentCamera
+		local look = cam.CFrame.LookVector
 		local move = hum.MoveDirection
 		local vert = 0
 		if UIS:IsKeyDown(Enum.KeyCode.Space) then
@@ -415,13 +443,14 @@ end))
 
 task.spawn(function()
 	while Running do
-		task.wait(0.4)
+		task.wait(0.3)
 		if S.Hitbox then
 			local folder = Workspace:FindFirstChild("Enemies")
 			if folder then
 				for _, m in ipairs(folder:GetChildren()) do
 					local r = m:FindFirstChild("HumanoidRootPart")
-					if r then
+					local hum = m:FindFirstChildOfClass("Humanoid")
+					if r and hum and hum.Health > 0 then
 						if not HitboxOrig[r] then HitboxOrig[r] = r.Size end
 						local s = S.HitboxSize
 						r.Size = Vector3.new(s, s, s)
@@ -442,38 +471,47 @@ task.spawn(function()
 	end
 end)
 
-local FARM_LOCK = false
+local function ensureQuest(q)
+	if tick() - lastQuestTime < 12 then return end
+	lastQuestTime = tick()
+	local _, hrp = char()
+	if hrp then
+		hrp.AssemblyLinearVelocity = Vector3.zero
+		hrp.CFrame = q.NPC + Vector3.new(0, 3, 0)
+	end
+	task.wait(0.6)
+	pcall(function()
+		CommF:InvokeServer("StartQuest", q.Quest, q.QLv)
+	end)
+	task.wait(0.6)
+end
+
 task.spawn(function()
 	while Running do
-		task.wait(0.1)
+		task.wait(0.15)
 		if not S.Farm then continue end
 		local ch, hrp, hum = char()
-		if ch and hrp and hum and hum.Health > 0 then
-			local q, target = nil, S.MobName
-			if S.FarmMode == "Level" then
-				q = questForLevel(getLevel())
-				if q then target = q.Mob end
-			end
+		if not (ch and hrp and hum) or hum.Health <= 0 then continue end
 
-			if q and tick() - lastQuestAsk > 8 then
-				lastQuestAsk = tick()
-				hrp.CFrame = q.NPC
-				task.wait(0.4)
-				pcall(function()
-					CommF:InvokeServer("StartQuest", q.Quest, q.QLv)
-				end)
-				task.wait(0.4)
-			end
+		local q, target = nil, S.MobName
+		if S.FarmMode == "Level" then
+			q = questForLevel(getLevel())
+			if q then target = q.Mob end
+		end
 
-			local mob = findMob(target)
-			if mob then
-				local mr = mob:FindFirstChild("HumanoidRootPart")
-				if mr then
-					hrp.AssemblyLinearVelocity = Vector3.zero
-					hrp.CFrame = CFrame.lookAt(mr.Position + Vector3.new(0, 8, 0), mr.Position)
-					local tool = getTool(hum)
-					if tool then tool:Activate() end
-				end
+		local mob = findMob(target)
+		if mob then
+			local mr = mob:FindFirstChild("HumanoidRootPart")
+			if mr then
+				hrp.AssemblyLinearVelocity = Vector3.zero
+				hrp.CFrame = CFrame.lookAt(mr.Position + Vector3.new(0, 10, 0), mr.Position)
+				attack(hum, true)
+			end
+		elseif q then
+			ensureQuest(q)
+			local _, hrp2 = char()
+			if hrp2 and (hrp2.Position - q.NPC.Position).Magnitude > 200 then
+				hrp2.CFrame = q.NPC
 			end
 		end
 	end
@@ -506,13 +544,12 @@ end)
 
 task.spawn(function()
 	while Running do
-		task.wait(0.1)
+		task.wait(0.12)
 		if S.Aura then
 			local _, _, hum = char()
 			local target = findMob("Any", S.AuraRange)
 			if target and hum then
-				local tool = getTool(hum)
-				if tool then tool:Activate() end
+				attack(hum, false)
 			end
 		end
 	end
@@ -520,14 +557,14 @@ end)
 
 task.spawn(function()
 	while Running do
-		task.wait(1)
-		if S.Pickup then
+		task.wait(0.8)
+		if S.Pickup and type(firetouchinterest) == "function" then
 			local _, hrp = char()
 			if hrp then
 				for _, o in ipairs(Workspace:GetChildren()) do
 					if not S.Pickup then break end
 					local h = o:IsA("Tool") and o:FindFirstChild("Handle")
-					if h and o.Name:find("Fruit") then
+					if h then
 						hrp.CFrame = h.CFrame
 						pcall(function()
 							firetouchinterest(hrp, h, 0)
@@ -542,7 +579,6 @@ task.spawn(function()
 	end
 end)
 
-local RSpyPara
 if hookmetamethod and newcclosure and getnamecallmethod then
 	local oldNamecall
 	oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
@@ -554,8 +590,6 @@ if hookmetamethod and newcclosure and getnamecallmethod then
 		return oldNamecall(self, ...)
 	end))
 end
-
-track(RunService.Heartbeat:Connect(function() end))
 
 local function httpGet(url)
 	local req = request or http_request or (syn and syn.request)
@@ -583,7 +617,8 @@ local function serverHop()
 end
 
 local function jobIdHop(id)
-	if not id or #id < 10 then notify("Job ID", "Job ID không hợp lệ") return end
+	id = (id or ""):gsub("%s", "")
+	if #id < 10 then notify("Job ID", "Job ID không hợp lệ") return end
 	pcall(function()
 		TeleportService:TeleportToPlaceInstance(game.PlaceId, id, LP)
 	end)
@@ -613,6 +648,15 @@ local function findPlayerByName(name)
 	return nil
 end
 
+local function playerNames()
+	local list = {}
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p ~= LP then table.insert(list, p.Name) end
+	end
+	if #list == 0 then table.insert(list, "Không có") end
+	return list
+end
+
 local function dumpTree(inst, depth, out)
 	if depth > 3 then return end
 	for _, c in ipairs(inst:GetChildren()) do
@@ -621,25 +665,30 @@ local function dumpTree(inst, depth, out)
 	end
 end
 
+local function parseOn(arg, cur)
+	if not arg then return not cur end
+	arg = arg:lower()
+	return arg == "on" or arg == "1" or arg == "true"
+end
+
 local function runCommand(text)
 	local args = {}
 	for w in text:gmatch("%S+") do table.insert(args, w) end
 	local cmd = (args[1] or ""):lower()
 	local arg = args[2]
-	local onOff = arg and (arg:lower() == "on" or arg:lower() == "1" or arg:lower() == "true")
 
 	if cmd == "speed" and tonumber(arg) then
-		S.SpeedVal = tonumber(arg)
+		setFlag("SpeedVal", tonumber(arg))
 		setFlag("Speed", true)
 	elseif cmd == "jump" and tonumber(arg) then
-		S.JumpVal = tonumber(arg)
+		setFlag("JumpVal", tonumber(arg))
 		setFlag("Jump", true)
 	elseif cmd == "fly" then
-		setFlag("Fly", onOff)
+		setFlag("Fly", parseOn(arg, S.Fly))
 	elseif cmd == "noclip" then
-		setFlag("Noclip", onOff)
+		setFlag("Noclip", parseOn(arg, S.Noclip))
 	elseif cmd == "infjump" then
-		setFlag("InfJump", onOff)
+		setFlag("InfJump", parseOn(arg, S.InfJump))
 	elseif cmd == "tp" and arg then
 		local p = findPlayerByName(arg)
 		if p and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
@@ -652,240 +701,682 @@ local function runCommand(text)
 	elseif cmd == "hop" then
 		serverHop()
 	elseif cmd == "unload" then
-		getgenv().DarkwenV1Unload()
+		getgenv().FurinaHubUnload()
 	else
 		notify("Command", "Lệnh không hợp lệ")
 	end
 end
 
-local Window = Rayfield:CreateWindow({
-	Name = "Darkwen V1 | Blox Fruits",
-	LoadingTitle = "Darkwen V1",
-	LoadingSubtitle = "Blox Fruits Executor",
-	ConfigurationSaving = {Enabled = false},
-	Discord = {Enabled = false},
-	KeySystem = false,
-})
+-- ===================== UI =====================
 
-local TabFarm = Window:CreateTab("Farm", 4483362458)
-local TabMove = Window:CreateTab("Movement", 4483362458)
-local TabCombat = Window:CreateTab("Combat", 4483362458)
-local TabESP = Window:CreateTab("ESP", 4483362458)
-local TabTeleport = Window:CreateTab("Teleport", 4483362458)
-local TabServer = Window:CreateTab("Server", 4483362458)
-local TabMisc = Window:CreateTab("Misc", 4483362458)
+local function corner(obj, r)
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, r or 8)
+	c.Parent = obj
+	return c
+end
+
+local function mkLabel(parent, text, size, pos, tsize, align)
+	local l = Instance.new("TextLabel")
+	l.BackgroundTransparency = 1
+	l.Size = size
+	l.Position = pos or UDim2.new()
+	l.Font = Enum.Font.GothamMedium
+	l.TextSize = tsize or 14
+	l.TextColor3 = TXT
+	l.TextXAlignment = align or Enum.TextXAlignment.Left
+	l.TextWrapped = true
+	l.Text = text
+	l.Parent = parent
+	return l
+end
+
+local function notify(title, content)
+	pcall(function()
+		local f = Instance.new("Frame")
+		f.Size = UDim2.fromOffset(260, 50)
+		f.AnchorPoint = Vector2.new(0.5, 0)
+		f.Position = UDim2.new(0.5, 0, 0, 12)
+		f.BackgroundColor3 = BG_MAIN
+		f.BorderSizePixel = 0
+		f.ZIndex = 100
+		f.Parent = Gui
+		corner(f, 10)
+		local st = Instance.new("UIStroke")
+		st.Color = ACCENT
+		st.Parent = f
+		local t = mkLabel(f, title, UDim2.new(1, -16, 0, 22), UDim2.fromOffset(8, 4), 13)
+		t.Font = Enum.Font.GothamBold
+		t.TextColor3 = ACCENT
+		local c = mkLabel(f, content, UDim2.new(1, -16, 0, 20), UDim2.fromOffset(8, 26), 12)
+		c.TextColor3 = Color3.fromRGB(210, 210, 220)
+		task.delay(3, function()
+			if f then f:Destroy() end
+		end)
+	end)
+end
+
+local function getParent()
+	local ok, hui = pcall(function() return gethui and gethui() end)
+	if ok and hui then return hui end
+	return CoreGui
+end
+
+local function resolveLogo()
+	if getcustomasset and isfile and isfile(LOGO_FILE) then
+		local ok, asset = pcall(getcustomasset, LOGO_FILE)
+		if ok and asset then return asset end
+	end
+	return LOGO_ASSET
+end
+
+local vp = Workspace.CurrentCamera and Workspace.CurrentCamera.ViewportSize or Vector2.new(800, 500)
+local isMobile = UIS.TouchEnabled and not UIS.KeyboardEnabled
+local W = math.min(isMobile and 460 or 560, vp.X - 16)
+local H = math.min(isMobile and 280 or 340, vp.Y - 16)
+
+Gui = Instance.new("ScreenGui")
+Gui.Name = "FurinaHub_" .. HttpService:GenerateGUID(false):sub(1, 8)
+Gui.ResetOnSpawn = false
+Gui.DisplayOrder = 999
+pcall(function()
+	if syn and syn.protect_gui then syn.protect_gui(Gui) end
+end)
+Gui.Parent = getParent()
+
+Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.AnchorPoint = Vector2.new(0.5, 0.5)
+Main.Position = UDim2.new(0.5, 0, 0.5, 0)
+Main.Size = UDim2.fromOffset(W, H)
+Main.BackgroundColor3 = BG_MAIN
+Main.BorderSizePixel = 0
+Main.ClipsDescendants = true
+Main.Parent = Gui
+corner(Main, 12)
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = Color3.fromRGB(60, 60, 75)
+mainStroke.Parent = Main
+
+local TitleBar = Instance.new("Frame")
+TitleBar.Size = UDim2.new(1, 0, 0, 34)
+TitleBar.BackgroundColor3 = BG_SIDE
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = Main
+
+local titleLbl = mkLabel(TitleBar, "Furina Hub | Blox Fruits", UDim2.new(1, -100, 1, 0), UDim2.fromOffset(12, 0), 14)
+titleLbl.Font = Enum.Font.GothamBold
+
+local function winBtn(text, xOff, color)
+	local b = Instance.new("TextButton")
+	b.Size = UDim2.fromOffset(26, 26)
+	b.Position = UDim2.new(1, xOff, 0.5, -13)
+	b.BackgroundColor3 = BG_ROW
+	b.Text = text
+	b.TextColor3 = color or TXT
+	b.Font = Enum.Font.GothamBold
+	b.TextSize = 16
+	b.AutoButtonColor = true
+	b.Parent = TitleBar
+	corner(b, 6)
+	return b
+end
+local btnMin = winBtn("–", -62)
+local btnClose = winBtn("×", -32, Color3.fromRGB(255, 110, 110))
+
+local Sidebar = Instance.new("Frame")
+Sidebar.Size = UDim2.new(0, 120, 1, -34)
+Sidebar.Position = UDim2.fromOffset(0, 34)
+Sidebar.BackgroundColor3 = BG_SIDE
+Sidebar.BorderSizePixel = 0
+Sidebar.Parent = Main
+
+local Content = Instance.new("Frame")
+Content.Size = UDim2.new(1, -120, 1, -34)
+Content.Position = UDim2.fromOffset(120, 34)
+Content.BackgroundTransparency = 1
+Content.Parent = Main
+
+local logoBox = Instance.new("Frame")
+logoBox.AnchorPoint = Vector2.new(0.5, 0)
+logoBox.Position = UDim2.new(0.5, 0, 0, 8)
+logoBox.Size = UDim2.fromOffset(56, 56)
+logoBox.BackgroundColor3 = BG_ROW
+logoBox.ClipsDescendants = true
+logoBox.Parent = Sidebar
+corner(logoBox, 12)
+
+local logo = Instance.new("ImageLabel")
+logo.Size = UDim2.fromScale(1, 1)
+logo.BackgroundTransparency = 1
+logo.ScaleType = Enum.ScaleType.Crop
+logo.Image = resolveLogo()
+logo.Parent = logoBox
+corner(logoBox, 12)
+
+local logoFallback = mkLabel(logoBox, "F", UDim2.fromScale(1, 1), UDim2.new(), 26, Enum.TextXAlignment.Center)
+logoFallback.Font = Enum.Font.GothamBold
+logoFallback.TextColor3 = ACCENT
+logoFallback.Visible = logo.Image == ""
+
+local TabHolder = Instance.new("Frame")
+TabHolder.Position = UDim2.fromOffset(6, 72)
+TabHolder.Size = UDim2.new(1, -12, 1, -78)
+TabHolder.BackgroundTransparency = 1
+TabHolder.Parent = Sidebar
+local tabLayout = Instance.new("UIListLayout")
+tabLayout.Padding = UDim.new(0, 4)
+tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+tabLayout.Parent = TabHolder
+
+local function selectTab(name)
+	for n, p in pairs(Pages) do p.Visible = (n == name) end
+	for n, b in pairs(TabBtns) do
+		b.BackgroundColor3 = n == name and ACCENT or BG_ROW
+		b.TextColor3 = n == name and Color3.fromRGB(15, 15, 20) or Color3.fromRGB(220, 220, 228)
+	end
+end
+
+local tabOrder = 0
+local function addTab(name)
+	tabOrder = tabOrder + 1
+	local b = Instance.new("TextButton")
+	b.Size = UDim2.new(1, 0, 0, 30)
+	b.LayoutOrder = tabOrder
+	b.BackgroundColor3 = BG_ROW
+	b.AutoButtonColor = false
+	b.Text = name
+	b.Font = Enum.Font.GothamMedium
+	b.TextSize = 13
+	b.TextColor3 = Color3.fromRGB(220, 220, 228)
+	b.Parent = TabHolder
+	corner(b, 6)
+	b.MouseButton1Click:Connect(function() selectTab(name) end)
+	TabBtns[name] = b
+end
+
+local function newPage(name)
+	local sf = Instance.new("ScrollingFrame")
+	sf.Name = name
+	sf.Size = UDim2.new(1, -8, 1, -8)
+	sf.Position = UDim2.fromOffset(4, 4)
+	sf.BackgroundTransparency = 1
+	sf.BorderSizePixel = 0
+	sf.ScrollBarThickness = 3
+	sf.CanvasSize = UDim2.new()
+	sf.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	sf.Visible = false
+	sf.Parent = Content
+	local lay = Instance.new("UIListLayout")
+	lay.Padding = UDim.new(0, 6)
+	lay.SortOrder = Enum.SortOrder.LayoutOrder
+	lay.Parent = sf
+	Pages[name] = sf
+	return sf
+end
+
+local function row(page, h)
+	local f = Instance.new("Frame")
+	f.Size = UDim2.new(1, -6, 0, h)
+	f.BackgroundColor3 = BG_ROW
+	f.BorderSizePixel = 0
+	f.Parent = page
+	corner(f, 8)
+	return f
+end
+
+local function addSection(page, text)
+	local l = mkLabel(page, text, UDim2.new(1, -6, 0, 22), UDim2.new(), 13)
+	l.Font = Enum.Font.GothamBold
+	l.TextColor3 = ACCENT
+end
+
+local function addParagraph(page, text)
+	local r = Instance.new("Frame")
+	r.Size = UDim2.new(1, -6, 0, 0)
+	r.AutomaticSize = Enum.AutomaticSize.Y
+	r.BackgroundColor3 = BG_ROW
+	r.BorderSizePixel = 0
+	r.Parent = page
+	corner(r, 8)
+	local pad = Instance.new("UIPadding")
+	pad.PaddingTop = UDim.new(0, 8)
+	pad.PaddingBottom = UDim.new(0, 8)
+	pad.PaddingLeft = UDim.new(0, 10)
+	pad.PaddingRight = UDim.new(0, 10)
+	pad.Parent = r
+	local l = mkLabel(r, text, UDim2.new(1, 0, 0, 0), UDim2.new(), 12)
+	l.AutomaticSize = Enum.AutomaticSize.Y
+	l.TextYAlignment = Enum.TextYAlignment.Top
+	l.TextColor3 = Color3.fromRGB(190, 190, 200)
+	return l
+end
+
+local function openPopup(title, options, onPick)
+	if Popup then
+		Popup:Destroy()
+		Popup = nil
+	end
+	local p = Instance.new("Frame")
+	p.Size = UDim2.new(0.86, 0, 0.8, 0)
+	p.Position = UDim2.new(0.07, 0, 0.1, 0)
+	p.BackgroundColor3 = Color3.fromRGB(14, 14, 19)
+	p.BorderSizePixel = 0
+	p.ZIndex = 20
+	p.Parent = Main
+	corner(p, 10)
+
+	local head = mkLabel(p, title, UDim2.new(1, -44, 0, 30), UDim2.fromOffset(10, 0), 13)
+	head.Font = Enum.Font.GothamBold
+	head.ZIndex = 21
+
+	local x = Instance.new("TextButton")
+	x.Size = UDim2.fromOffset(30, 30)
+	x.Position = UDim2.new(1, -36, 0, 2)
+	x.BackgroundColor3 = BG_ROW
+	x.Text = "×"
+	x.TextColor3 = TXT
+	x.Font = Enum.Font.GothamBold
+	x.TextSize = 16
+	x.ZIndex = 21
+	x.Parent = p
+	corner(x, 6)
+	x.MouseButton1Click:Connect(function()
+		p:Destroy()
+		Popup = nil
+	end)
+
+	local list = Instance.new("ScrollingFrame")
+	list.Size = UDim2.new(1, -12, 1, -38)
+	list.Position = UDim2.fromOffset(6, 34)
+	list.BackgroundTransparency = 1
+	list.BorderSizePixel = 0
+	list.ScrollBarThickness = 3
+	list.CanvasSize = UDim2.new()
+	list.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	list.Parent = p
+	local lay = Instance.new("UIListLayout")
+	lay.Padding = UDim.new(0, 4)
+	lay.SortOrder = Enum.SortOrder.LayoutOrder
+	lay.Parent = list
+
+	for i, opt in ipairs(options) do
+		local b = Instance.new("TextButton")
+		b.Size = UDim2.new(1, -6, 0, 30)
+		b.LayoutOrder = i
+		b.BackgroundColor3 = BG_ROW
+		b.Text = tostring(opt)
+		b.Font = Enum.Font.GothamMedium
+		b.TextSize = 13
+		b.TextColor3 = TXT
+		b.Parent = list
+		corner(b, 6)
+		b.MouseButton1Click:Connect(function()
+			p:Destroy()
+			Popup = nil
+			onPick(opt)
+		end)
+	end
+	Popup = p
+end
+
+local function addToggle(page, text, key, default, cb)
+	S[key] = default
+	local r = row(page, 36)
+	mkLabel(r, text, UDim2.new(1, -62, 1, 0), UDim2.fromOffset(10, 0), 13)
+
+	local sw = Instance.new("TextButton")
+	sw.Size = UDim2.fromOffset(40, 20)
+	sw.Position = UDim2.new(1, -50, 0.5, -10)
+	sw.AutoButtonColor = false
+	sw.Text = ""
+	sw.Parent = r
+	corner(sw, 10)
+
+	local knob = Instance.new("Frame")
+	knob.Size = UDim2.fromOffset(16, 16)
+	knob.BackgroundColor3 = Color3.new(1, 1, 1)
+	knob.BorderSizePixel = 0
+	knob.Parent = sw
+	corner(knob, 8)
+
+	local function set(v)
+		S[key] = v
+		TweenService:Create(sw, TI, {BackgroundColor3 = v and ACCENT or OFF}):Play()
+		TweenService:Create(knob, TI, {Position = v and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)}):Play()
+		if cb then pcall(cb, v) end
+	end
+
+	sw.BackgroundColor3 = default and ACCENT or OFF
+	knob.Position = default and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+	sw.MouseButton1Click:Connect(function() set(not S[key]) end)
+	Setters[key] = set
+end
+
+local function addSlider(page, text, key, minV, maxV, default, cb)
+	S[key] = default
+	local r = row(page, 50)
+	mkLabel(r, text, UDim2.new(1, -70, 0, 20), UDim2.fromOffset(10, 4), 13)
+	local valL = mkLabel(r, tostring(default), UDim2.new(0, 60, 0, 20), UDim2.new(1, -70, 0, 4), 13, Enum.TextXAlignment.Right)
+	valL.TextColor3 = ACCENT
+
+	local hit = Instance.new("TextButton")
+	hit.Size = UDim2.new(1, -20, 0, 22)
+	hit.Position = UDim2.new(0, 10, 1, -26)
+	hit.BackgroundTransparency = 1
+	hit.Text = ""
+	hit.AutoButtonColor = false
+	hit.Parent = r
+
+	local bar = Instance.new("Frame")
+	bar.Size = UDim2.new(1, 0, 0, 6)
+	bar.Position = UDim2.new(0, 0, 0.5, -3)
+	bar.BackgroundColor3 = OFF
+	bar.BorderSizePixel = 0
+	bar.Parent = hit
+	corner(bar, 3)
+
+	local fill = Instance.new("Frame")
+	fill.Size = UDim2.new(0, 0, 1, 0)
+	fill.BackgroundColor3 = ACCENT
+	fill.BorderSizePixel = 0
+	fill.Parent = bar
+	corner(fill, 3)
+
+	local knob = Instance.new("Frame")
+	knob.Size = UDim2.fromOffset(14, 14)
+	knob.AnchorPoint = Vector2.new(0.5, 0.5)
+	knob.Position = UDim2.new(0, 0, 0.5, 0)
+	knob.BackgroundColor3 = Color3.new(1, 1, 1)
+	knob.BorderSizePixel = 0
+	knob.Parent = bar
+	corner(knob, 7)
+
+	local function setVal(v)
+		v = math.clamp(math.floor(v + 0.5), minV, maxV)
+		local p = (v - minV) / (maxV - minV)
+		S[key] = v
+		fill.Size = UDim2.new(p, 0, 1, 0)
+		knob.Position = UDim2.new(p, 0, 0.5, 0)
+		valL.Text = tostring(v)
+		if cb then pcall(cb, v) end
+	end
+	setVal(default)
+
+	local sliding = false
+	local function fromX(x)
+		local p = math.clamp((x - bar.AbsolutePosition.X) / math.max(bar.AbsoluteSize.X, 1), 0, 1)
+		setVal(minV + p * (maxV - minV))
+	end
+
+	hit.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+			sliding = true
+			fromX(i.Position.X)
+		end
+	end)
+	track(UIS.InputChanged:Connect(function(i)
+		if sliding and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+			fromX(i.Position.X)
+		end
+	end))
+	track(UIS.InputEnded:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+			sliding = false
+		end
+	end))
+	Setters[key] = setVal
+end
+
+local function addDropdown(page, text, key, optsFn, default, cb)
+	if key then S[key] = default end
+	local r = row(page, 36)
+	mkLabel(r, text, UDim2.new(1, -150, 1, 0), UDim2.fromOffset(10, 0), 13)
+
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0, 130, 0, 26)
+	btn.Position = UDim2.new(1, -138, 0.5, -13)
+	btn.BackgroundColor3 = BG_INPUT
+	btn.Text = tostring(default)
+	btn.Font = Enum.Font.GothamMedium
+	btn.TextSize = 12
+	btn.TextColor3 = TXT
+	btn.TextTruncate = Enum.TextTruncate.AtEnd
+	btn.Parent = r
+	corner(btn, 6)
+
+	btn.MouseButton1Click:Connect(function()
+		openPopup(text, optsFn(), function(opt)
+			btn.Text = tostring(opt)
+			if key then S[key] = opt end
+			if cb then pcall(cb, opt) end
+		end)
+	end)
+end
+
+local function addButton(page, text, cb)
+	local r = row(page, 34)
+	local b = Instance.new("TextButton")
+	b.Size = UDim2.new(1, -20, 1, -8)
+	b.Position = UDim2.fromOffset(10, 4)
+	b.BackgroundColor3 = BG_INPUT
+	b.Text = text
+	b.Font = Enum.Font.GothamMedium
+	b.TextSize = 13
+	b.TextColor3 = TXT
+	b.Parent = r
+	corner(b, 6)
+	b.MouseButton1Click:Connect(function() pcall(cb) end)
+end
+
+local function addInput(page, placeholder, clearAfter, cb)
+	local r = row(page, 36)
+	local tb = Instance.new("TextBox")
+	tb.Size = UDim2.new(1, -20, 0, 26)
+	tb.Position = UDim2.fromOffset(10, 5)
+	tb.BackgroundColor3 = BG_INPUT
+	tb.Text = ""
+	tb.PlaceholderText = placeholder
+	tb.PlaceholderColor3 = Color3.fromRGB(140, 140, 150)
+	tb.TextColor3 = TXT
+	tb.Font = Enum.Font.GothamMedium
+	tb.TextSize = 13
+	tb.ClearTextOnFocus = false
+	tb.Parent = r
+	corner(tb, 6)
+	tb.FocusLost:Connect(function(enter)
+		if enter and tb.Text ~= "" then
+			local v = tb.Text
+			if clearAfter then tb.Text = "" end
+			pcall(cb, v)
+		end
+	end)
+end
+
+local pFarm = newPage("Farm")
+local pMove = newPage("Movement")
+local pCombat = newPage("Combat")
+local pESP = newPage("ESP")
+local pTP = newPage("Teleport")
+local pServer = newPage("Server")
+local pMisc = newPage("Misc")
+
+addTab("Farm")
+addTab("Movement")
+addTab("Combat")
+addTab("ESP")
+addTab("Teleport")
+addTab("Server")
+addTab("Misc")
 
 local seaName = SEA_NAMES[game.PlaceId] or "Không xác định"
-TabFarm:CreateParagraph({Title = "Thông tin", Content = "Sea hiện tại: " .. seaName .. " | Level: " .. tostring(getLevel())})
+InfoLbl = addParagraph(pFarm, "Sea: " .. seaName .. " | Level: " .. tostring(getLevel()))
 
-TabFarm:CreateSection("Auto Farm")
-Toggles.Farm = TabFarm:CreateToggle({Name = "Auto Farm", CurrentValue = false, Flag = "Farm", Callback = function(v) S.Farm = v end})
-TabFarm:CreateDropdown({
-	Name = "Chế độ farm",
-	Options = {"Level", "Mob"},
-	CurrentOption = {"Level"},
-	MultipleOptions = false,
-	Callback = function(opt)
-		S.FarmMode = type(opt) == "table" and opt[1] or opt
-	end,
-})
-local MobDropdown = TabFarm:CreateDropdown({
-	Name = "Mob (chế độ Mob)",
-	Options = scanMobs(),
-	CurrentOption = {"Any"},
-	MultipleOptions = false,
-	Callback = function(opt)
-		S.MobName = type(opt) == "table" and opt[1] or opt
-	end,
-})
-TabFarm:CreateButton({
-	Name = "Quét lại danh sách mob",
-	Callback = function()
-		pcall(function() MobDropdown:Refresh(scanMobs()) end)
-		notify("Mob", "Đã quét lại danh sách")
-	end,
-})
+addSection(pFarm, "Auto Farm")
+addToggle(pFarm, "Auto Farm", "Farm", false)
+addDropdown(pFarm, "Chế độ farm", "FarmMode", function() return {"Level", "Mob"} end, "Level")
+addDropdown(pFarm, "Mob (chế độ Mob)", "MobName", scanMobs, "Any")
+addButton(pFarm, "Quét lại danh sách mob", function() notify("Mob", "Danh sách đã được làm mới") end)
 
-TabFarm:CreateSection("Stats & Haki")
-Toggles.Stats = TabFarm:CreateToggle({Name = "Auto Stats", CurrentValue = false, Flag = "Stats", Callback = function(v) S.Stats = v end})
-TabFarm:CreateDropdown({
-	Name = "Điểm cộng",
-	Options = {"Melee", "Defense", "Sword", "Gun", "Demon Fruit"},
-	CurrentOption = {"Melee"},
-	MultipleOptions = false,
-	Callback = function(opt)
-		S.StatPoint = type(opt) == "table" and opt[1] or opt
-	end,
-})
-Toggles.Haki = TabFarm:CreateToggle({Name = "Auto Buso Haki", CurrentValue = false, Flag = "Haki", Callback = function(v) S.Haki = v end})
+addSection(pFarm, "Stats & Haki")
+addToggle(pFarm, "Auto Stats", "Stats", false)
+addDropdown(pFarm, "Điểm cộng", "StatPoint", function()
+	return {"Melee", "Defense", "Sword", "Gun", "Demon Fruit"}
+end, "Melee")
+addToggle(pFarm, "Auto Buso Haki", "Haki", false)
 
-TabMove:CreateSection("Movement")
-Toggles.Speed = TabMove:CreateToggle({Name = "Speed", CurrentValue = false, Flag = "Speed", Callback = function(v) S.Speed = v end})
-TabMove:CreateSlider({Name = "Tốc độ", Range = {16, 500}, Increment = 1, CurrentValue = 100, Flag = "SpeedVal", Callback = function(v) S.SpeedVal = v end})
-Toggles.Jump = TabMove:CreateToggle({Name = "Jump Power", CurrentValue = false, Flag = "Jump", Callback = function(v) S.Jump = v end})
-TabMove:CreateSlider({Name = "Lực nhảy", Range = {50, 400}, Increment = 1, CurrentValue = 120, Flag = "JumpVal", Callback = function(v) S.JumpVal = v end})
-Toggles.Fly = TabMove:CreateToggle({Name = "Fly (joystick theo camera)", CurrentValue = false, Flag = "Fly", Callback = function(v) S.Fly = v end})
-TabMove:CreateSlider({Name = "Tốc độ bay", Range = {20, 300}, Increment = 1, CurrentValue = 90, Flag = "FlySpeed", Callback = function(v) S.FlySpeed = v end})
-Toggles.Noclip = TabMove:CreateToggle({Name = "Noclip", CurrentValue = false, Flag = "Noclip", Callback = function(v) S.Noclip = v end})
-Toggles.InfJump = TabMove:CreateToggle({Name = "Infinite Jump", CurrentValue = false, Flag = "InfJump", Callback = function(v) S.InfJump = v end})
+addSection(pMove, "Movement")
+addToggle(pMove, "Speed", "Speed", false)
+addSlider(pMove, "Tốc độ", "SpeedVal", 16, 500, 100)
+addToggle(pMove, "Jump Power", "Jump", false)
+addSlider(pMove, "Lực nhảy", "JumpVal", 50, 400, 120)
+addToggle(pMove, "Fly (theo camera)", "Fly", false)
+addSlider(pMove, "Tốc độ bay", "FlySpeed", 20, 300, 90)
+addToggle(pMove, "Noclip", "Noclip", false)
+addToggle(pMove, "Infinite Jump", "InfJump", false)
 
-TabCombat:CreateSection("Combat")
-Toggles.Hitbox = TabCombat:CreateToggle({Name = "Hitbox Expander", CurrentValue = false, Flag = "Hitbox", Callback = function(v) S.Hitbox = v end})
-TabCombat:CreateSlider({Name = "Kích thước hitbox", Range = {5, 80}, Increment = 1, CurrentValue = 25, Flag = "HitboxSize", Callback = function(v) S.HitboxSize = v end})
-Toggles.Aura = TabCombat:CreateToggle({Name = "Kill Aura", CurrentValue = false, Flag = "Aura", Callback = function(v) S.Aura = v end})
-TabCombat:CreateSlider({Name = "Tầm kill aura", Range = {5, 80}, Increment = 1, CurrentValue = 25, Flag = "AuraRange", Callback = function(v) S.AuraRange = v end})
-Toggles.Pickup = TabCombat:CreateToggle({Name = "Auto Pickup Trái", CurrentValue = false, Flag = "Pickup", Callback = function(v) S.Pickup = v end})
+addSection(pCombat, "Combat")
+addToggle(pCombat, "Hitbox Expander", "Hitbox", false)
+addSlider(pCombat, "Kích thước hitbox", "HitboxSize", 5, 80, 25)
+addToggle(pCombat, "Kill Aura", "Aura", false)
+addSlider(pCombat, "Tầm kill aura", "AuraRange", 5, 80, 25)
+addToggle(pCombat, "Auto Pickup Trái", "Pickup", false)
 
-TabESP:CreateSection("Player ESP")
-Toggles.ESPPlayers = TabESP:CreateToggle({Name = "Player ESP", CurrentValue = false, Flag = "ESPPlayers", Callback = function(v) S.ESPPlayers = v end})
-Toggles.ESPChams = TabESP:CreateToggle({Name = "Chams", CurrentValue = true, Flag = "ESPChams", Callback = function(v) S.ESPChams = v end})
-Toggles.ESPTracer = TabESP:CreateToggle({Name = "Tracer", CurrentValue = false, Flag = "ESPTracer", Callback = function(v) S.ESPTracer = v end})
-Toggles.ESPTeam = TabESP:CreateToggle({Name = "Ẩn đồng đội", CurrentValue = false, Flag = "ESPTeam", Callback = function(v) S.ESPTeam = v end})
-TabESP:CreateSection("World ESP")
-Toggles.ESPFruit = TabESP:CreateToggle({Name = "Fruit ESP", CurrentValue = false, Flag = "ESPFruit", Callback = function(v) S.ESPFruit = v end})
-Toggles.ESPChest = TabESP:CreateToggle({Name = "Chest ESP", CurrentValue = false, Flag = "ESPChest", Callback = function(v) S.ESPChest = v end})
+addSection(pESP, "Player ESP")
+addToggle(pESP, "Player ESP", "ESPPlayers", false)
+addToggle(pESP, "Chams", "ESPChams", true)
+addToggle(pESP, "Tracer", "ESPTracer", false)
+addToggle(pESP, "Ẩn đồng đội", "ESPTeam", false)
+addSection(pESP, "World ESP")
+addToggle(pESP, "Fruit ESP", "ESPFruit", false)
+addToggle(pESP, "Chest ESP", "ESPChest", false)
 
 local islandNames = {}
 for _, i in ipairs(ISLANDS) do table.insert(islandNames, i.Name) end
 selectedIsland = ISLANDS[1]
 
-TabTeleport:CreateSection("Teleport đảo")
-TabTeleport:CreateDropdown({
-	Name = "Chọn đảo",
-	Options = islandNames,
-	CurrentOption = {islandNames[1]},
-	MultipleOptions = false,
-	Callback = function(opt)
-		local name = type(opt) == "table" and opt[1] or opt
-		for _, i in ipairs(ISLANDS) do
-			if i.Name == name then selectedIsland = i end
-		end
-	end,
-})
-TabTeleport:CreateButton({
-	Name = "Teleport tới đảo",
-	Callback = function()
-		if selectedIsland then teleportTo(selectedIsland.CF) end
-	end,
-})
-
-TabTeleport:CreateSection("Teleport người chơi")
-local function playerNames()
-	local list = {}
-	for _, p in ipairs(Players:GetPlayers()) do
-		if p ~= LP then table.insert(list, p.Name) end
+addSection(pTP, "Teleport đảo")
+addDropdown(pTP, "Chọn đảo", nil, function() return islandNames end, islandNames[1], function(opt)
+	for _, i in ipairs(ISLANDS) do
+		if i.Name == opt then selectedIsland = i end
 	end
-	if #list == 0 then table.insert(list, "Không có") end
-	return list
-end
-local PlayerDropdown = TabTeleport:CreateDropdown({
-	Name = "Người chơi",
-	Options = playerNames(),
-	CurrentOption = {playerNames()[1]},
-	MultipleOptions = false,
-	Callback = function(opt)
-		selectedPlayer = type(opt) == "table" and opt[1] or opt
-	end,
-})
-TabTeleport:CreateButton({
-	Name = "Làm mới danh sách người chơi",
-	Callback = function()
-		pcall(function() PlayerDropdown:Refresh(playerNames()) end)
-	end,
-})
-TabTeleport:CreateButton({
-	Name = "Teleport tới người chơi đã chọn",
-	Callback = function()
-		local p = selectedPlayer and Players:FindFirstChild(selectedPlayer)
-		if p and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-			teleportTo(p.Character.HumanoidRootPart.CFrame)
-		else
-			notify("Teleport", "Không tìm thấy người chơi")
-		end
-	end,
-})
+end)
+addButton(pTP, "Teleport tới đảo", function()
+	if selectedIsland then teleportTo(selectedIsland.CF) end
+end)
 
-TabServer:CreateSection("Server")
-TabServer:CreateButton({Name = "Server Hop", Callback = serverHop})
-TabServer:CreateButton({Name = "Rejoin", Callback = rejoin})
-TabServer:CreateInput({
-	Name = "Job ID Hop",
-	PlaceholderText = "Dán Job ID",
-	RemoveTextAfterFocusLost = false,
-	Callback = function(text) jobIdHop(text) end,
-})
-TabServer:CreateParagraph({Title = "Job ID hiện tại", Content = game.JobId})
+addSection(pTP, "Teleport người chơi")
+local firstPlayer = playerNames()[1]
+if firstPlayer ~= "Không có" then selectedPlayer = firstPlayer end
+addDropdown(pTP, "Người chơi", nil, playerNames, firstPlayer, function(opt)
+	if opt ~= "Không có" then selectedPlayer = opt end
+end)
+addButton(pTP, "Teleport tới người chơi đã chọn", function()
+	local p = selectedPlayer and Players:FindFirstChild(selectedPlayer)
+	if p and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+		teleportTo(p.Character.HumanoidRootPart.CFrame)
+	else
+		notify("Teleport", "Không tìm thấy người chơi")
+	end
+end)
 
-TabMisc:CreateSection("Misc")
-Toggles.AntiAFK = TabMisc:CreateToggle({Name = "Anti-AFK", CurrentValue = true, Flag = "AntiAFK", Callback = function(v) S.AntiAFK = v end})
-Toggles.RSpy = TabMisc:CreateToggle({Name = "Remote Spy", CurrentValue = false, Flag = "RSpy", Callback = function(v) S.RSpy = v end})
-RSpyPara = TabMisc:CreateParagraph({Title = "Remote Spy", Content = "Chưa có log"})
-TabMisc:CreateButton({
-	Name = "Copy log Remote",
-	Callback = function()
-		pcall(function() setclipboard(table.concat(RSpyLog, "\n")) end)
-		notify("Remote Spy", "Đã copy log")
-	end,
-})
-TabMisc:CreateButton({
-	Name = "Xóa log Remote",
-	Callback = function() table.clear(RSpyLog) end,
-})
-TabMisc:CreateButton({
-	Name = "Dump cây Workspace & ReplicatedStorage",
-	Callback = function()
-		local out = {"[Workspace]"}
-		dumpTree(Workspace, 1, out)
-		table.insert(out, "[ReplicatedStorage]")
-		dumpTree(ReplicatedStorage, 1, out)
-		local text = table.concat(out, "\n")
-		pcall(function() setclipboard(text) end)
-		print(text)
-		notify("Dump", "Đã copy và in ra console")
-	end,
-})
-TabMisc:CreateSection("Command Bar")
-TabMisc:CreateParagraph({
-	Title = "Cú pháp",
-	Content = "speed 150 | jump 200 | fly on/off | noclip on/off | infjump on/off | tp <tên> | rejoin | hop | unload",
-})
-TabMisc:CreateInput({
-	Name = "Command",
-	PlaceholderText = "Nhập lệnh rồi Enter",
-	RemoveTextAfterFocusLost = true,
-	Callback = function(text) runCommand(text) end,
-})
+addSection(pServer, "Server")
+addButton(pServer, "Server Hop", serverHop)
+addButton(pServer, "Rejoin", rejoin)
+addInput(pServer, "Dán Job ID rồi Enter", false, jobIdHop)
+addParagraph(pServer, "Job ID hiện tại: " .. game.JobId)
 
+addSection(pMisc, "Misc")
+addToggle(pMisc, "Anti-AFK", "AntiAFK", true)
+addToggle(pMisc, "Remote Spy", "RSpy", false)
+RSpyPara = addParagraph(pMisc, "Chưa có log")
+addButton(pMisc, "Copy log Remote", function()
+	pcall(function() setclipboard(table.concat(RSpyLog, "\n")) end)
+	notify("Remote Spy", "Đã copy log")
+end)
+addButton(pMisc, "Xóa log Remote", function() table.clear(RSpyLog) end)
+addButton(pMisc, "Dump Workspace & ReplicatedStorage", function()
+	local out = {"[Workspace]"}
+	dumpTree(Workspace, 1, out)
+	table.insert(out, "[ReplicatedStorage]")
+	dumpTree(ReplicatedStorage, 1, out)
+	local text = table.concat(out, "\n")
+	pcall(function() setclipboard(text) end)
+	print(text)
+	notify("Dump", "Đã copy và in ra console")
+end)
+addSection(pMisc, "Command Bar")
+addParagraph(pMisc, "speed 150 | jump 200 | fly on/off | noclip on/off | infjump on/off | tp <tên> | rejoin | hop | unload")
+addInput(pMisc, "Nhập lệnh rồi Enter", true, runCommand)
+
+selectTab("Farm")
+
+-- Kéo cửa sổ
+TitleBar.InputBegan:Connect(function(i)
+	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = i.Position
+		startPos = Main.Position
+	end
+end)
+track(UIS.InputChanged:Connect(function(i)
+	if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+		local d = i.Position - dragStart
+		Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
+	end
+end))
+track(UIS.InputEnded:Connect(function(i)
+	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+		dragging = false
+	end
+end))
+
+-- Nút mở/ẩn menu (nổi bên trái, tiện cho mobile)
+local OpenBtn = Instance.new("TextButton")
+OpenBtn.Size = UDim2.fromOffset(44, 44)
+OpenBtn.Position = UDim2.new(0, 10, 0.5, -22)
+OpenBtn.BackgroundColor3 = BG_MAIN
+OpenBtn.Text = "F"
+OpenBtn.Font = Enum.Font.GothamBold
+OpenBtn.TextSize = 20
+OpenBtn.TextColor3 = ACCENT
+OpenBtn.AutoButtonColor = true
+OpenBtn.Parent = Gui
+corner(OpenBtn, 22)
+local openStroke = Instance.new("UIStroke")
+openStroke.Color = ACCENT
+openStroke.Parent = OpenBtn
+OpenBtn.MouseButton1Click:Connect(function()
+	Main.Visible = not Main.Visible
+end)
+
+btnMin.MouseButton1Click:Connect(function()
+	Main.Visible = false
+end)
+
+-- Vòng cập nhật thông tin và log
 task.spawn(function()
 	while Running do
 		task.wait(2)
+		pcall(function()
+			InfoLbl.Text = "Sea: " .. seaName .. " | Level: " .. tostring(getLevel())
+		end)
 		if RSpyPara then
 			local tail = {}
 			for i = math.max(1, #RSpyLog - 5), #RSpyLog do
 				table.insert(tail, RSpyLog[i])
 			end
 			pcall(function()
-				RSpyPara:Set({
-					Title = "Remote Spy (" .. #RSpyLog .. ")",
-					Content = #tail > 0 and table.concat(tail, "\n") or "Chưa có log",
-				})
+				RSpyPara.Text = #tail > 0 and ("Remote Spy (" .. #RSpyLog .. ")\n" .. table.concat(tail, "\n")) or "Chưa có log"
 			end)
 		end
 	end
 end)
 
-task.spawn(function()
-	while Running do
-		task.wait(10)
-		pcall(function()
-			local list = playerNames()
-			PlayerDropdown:Refresh(list)
-		end)
-	end
-end)
-
-getgenv().DarkwenV1Unload = function()
+getgenv().FurinaHubUnload = function()
 	Running = false
+	S.Farm, S.Fly, S.Noclip, S.Speed, S.Jump, S.Hitbox, S.Aura = false, false, false, false, false, false, false
+	S.ESPPlayers, S.ESPFruit, S.ESPChest, S.Pickup, S.InfJump, S.Haki, S.Stats = false, false, false, false, false, false, false
 	for _, c in ipairs(Conns) do
 		pcall(function() c:Disconnect() end)
 	end
@@ -917,8 +1408,12 @@ getgenv().DarkwenV1Unload = function()
 		end
 	end
 	table.clear(HitboxOrig)
-	pcall(function() Rayfield:Destroy() end)
-	getgenv().DarkwenV1Unload = nil
+	if Popup then
+		pcall(function() Popup:Destroy() end)
+		Popup = nil
+	end
+	pcall(function() Gui:Destroy() end)
+	getgenv().FurinaHubUnload = nil
 end
 
-notify("Darkwen V1", "Đã load script Blox Fruits")
+notify("Furina Hub", "Đã load script Blox Fruits")
