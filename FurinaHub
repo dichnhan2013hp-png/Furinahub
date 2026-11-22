@@ -1,0 +1,924 @@
+-- Darkwen V1 | Blox Fruits | Delta | Mobile | Rayfield
+
+if getgenv().DarkwenV1Unload then pcall(getgenv().DarkwenV1Unload) end
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+local TeleportService = game:GetService("TeleportService")
+local VirtualUser = game:GetService("VirtualUser")
+local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+
+local LP = Players.LocalPlayer
+local CommF = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommF_")
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+
+local Running = true
+local Conns, Drawings, Toggles, HitboxOrig, RSpyLog = {}, {}, {}, {}, {}
+local Applied = {Speed = false, Jump = false, Noclip = false}
+local ESPDirty = {player = false, fruit = false, chest = false}
+local selectedPlayer, selectedIsland = nil, nil
+local lastQuestAsk = 0
+
+local S = {
+	Speed = false, SpeedVal = 100,
+	Jump = false, JumpVal = 120,
+	Fly = false, FlySpeed = 90,
+	Noclip = false, InfJump = false,
+	Farm = false, FarmMode = "Level", MobName = "Any",
+	Stats = false, StatPoint = "Melee",
+	Haki = false, Hitbox = false, HitboxSize = 25,
+	Aura = false, AuraRange = 25,
+	Pickup = false,
+	ESPPlayers = false, ESPChams = true, ESPTracer = false, ESPTeam = false,
+	ESPFruit = false, ESPChest = false,
+	AntiAFK = true, RSpy = false,
+}
+
+local SEA_NAMES = {
+	[2753915549] = "Sea 1",
+	[4442272183] = "Sea 2",
+	[7449423635] = "Sea 3",
+}
+
+local SEA1_QUESTS = {
+	{Min = 1,  Max = 9,  Mob = "Bandit",        Quest = "BanditQuest1", QLv = 1, NPC = CFrame.new(1061, 17, 1544)},
+	{Min = 10, Max = 14, Mob = "Pirate",        Quest = "BuggyQuest1",  QLv = 1, NPC = CFrame.new(-1141, 5, 3831)},
+	{Min = 15, Max = 29, Mob = "Monkey",        Quest = "JungleQuest",  QLv = 1, NPC = CFrame.new(-1601, 37, 153)},
+	{Min = 30, Max = 39, Mob = "Desert Bandit", Quest = "DesertQuest",  QLv = 1, NPC = CFrame.new(896, 7, 4390)},
+	{Min = 40, Max = 59, Mob = "Snow Bandit",   Quest = "SnowQuest",    QLv = 1, NPC = CFrame.new(1389, 88, -1298)},
+}
+
+local ISLANDS = {
+	{Name = "Starter Island", CF = CFrame.new(1061, 17, 1544)},
+	{Name = "Jungle", CF = CFrame.new(-1601, 37, 153)},
+	{Name = "Pirate Village", CF = CFrame.new(-1141, 5, 3831)},
+	{Name = "Desert", CF = CFrame.new(896, 7, 4390)},
+	{Name = "Snow Island", CF = CFrame.new(1389, 88, -1298)},
+	{Name = "Middle Town", CF = CFrame.new(-690, 15, 1582)},
+}
+
+local function track(c)
+	table.insert(Conns, c)
+	return c
+end
+
+local function notify(title, content)
+	pcall(function()
+		Rayfield:Notify({Title = title, Content = content, Duration = 3})
+	end)
+end
+
+local function char()
+	local ch = LP.Character
+	if not ch then return nil end
+	return ch, ch:FindFirstChild("HumanoidRootPart"), ch:FindFirstChildOfClass("Humanoid")
+end
+
+local function getLevel()
+	local data = LP:FindFirstChild("Data")
+	local lv = data and data:FindFirstChild("Level")
+	return lv and lv.Value or 1
+end
+
+local function questForLevel(lv)
+	for _, q in ipairs(SEA1_QUESTS) do
+		if lv >= q.Min and lv <= q.Max then return q end
+	end
+	return nil
+end
+
+local function scanMobs()
+	local list, seen = {"Any"}, {}
+	local folder = Workspace:FindFirstChild("Enemies")
+	if folder then
+		for _, m in ipairs(folder:GetChildren()) do
+			if not seen[m.Name] then
+				seen[m.Name] = true
+				table.insert(list, m.Name)
+			end
+		end
+	end
+	table.sort(list, function(a, b)
+		if a == "Any" then return true end
+		if b == "Any" then return false end
+		return a < b
+	end)
+	return list
+end
+
+local function findMob(name, range)
+	local folder = Workspace:FindFirstChild("Enemies")
+	local _, myHRP = char()
+	if not folder or not myHRP then return nil end
+	local best, bestD = nil, math.huge
+	for _, m in ipairs(folder:GetChildren()) do
+		if name == "Any" or m.Name == name then
+			local hum = m:FindFirstChildOfClass("Humanoid")
+			local r = m:FindFirstChild("HumanoidRootPart")
+			if hum and r and hum.Health > 0 then
+				local d = (r.Position - myHRP.Position).Magnitude
+				if (not range or d <= range) and d < bestD then
+					best, bestD = m, d
+				end
+			end
+		end
+	end
+	return best
+end
+
+local function getTool(hum)
+	local ch = LP.Character
+	local t = ch and ch:FindFirstChildOfClass("Tool")
+	if t then return t end
+	local bp = LP:FindFirstChildOfClass("Backpack") and LP.Backpack:FindFirstChildOfClass("Tool")
+	if bp and hum then pcall(function() hum:EquipTool(bp) end) end
+	return nil
+end
+
+local function setFlag(key, val)
+	S[key] = val
+	if Toggles[key] then pcall(function() Toggles[key]:Set(val) end) end
+end
+
+local function makeTag(adornee, withBar, kind)
+	local bb = Instance.new("BillboardGui")
+	bb.Name = "DW_Tag"
+	bb.AlwaysOnTop = true
+	bb.Size = UDim2.fromOffset(170, withBar and 44 or 24)
+	bb.StudsOffset = Vector3.new(0, withBar and 2.6 or 1.5, 0)
+	bb.Adornee = adornee
+	bb:SetAttribute("DWKind", kind)
+	bb.Parent = adornee
+
+	local lbl = Instance.new("TextLabel")
+	lbl.Name = "Info"
+	lbl.BackgroundTransparency = 1
+	lbl.Size = UDim2.new(1, 0, withBar and 0.6 or 1, 0)
+	lbl.Font = Enum.Font.GothamBold
+	lbl.TextScaled = true
+	lbl.TextColor3 = Color3.new(1, 1, 1)
+	lbl.TextStrokeTransparency = 0.3
+	lbl.Parent = bb
+
+	if withBar then
+		local bg = Instance.new("Frame")
+		bg.Name = "BarBG"
+		bg.Size = UDim2.new(1, -10, 0, 6)
+		bg.Position = UDim2.new(0, 5, 1, -8)
+		bg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+		bg.BorderSizePixel = 0
+		bg.Parent = bb
+		local fill = Instance.new("Frame")
+		fill.Name = "Fill"
+		fill.Size = UDim2.new(1, 0, 1, 0)
+		fill.BackgroundColor3 = Color3.fromRGB(80, 230, 90)
+		fill.BorderSizePixel = 0
+		fill.Parent = bg
+	end
+	return bb
+end
+
+local function distToMe(pos)
+	local _, hrp = char()
+	return hrp and math.floor((hrp.Position - pos).Magnitude) or 0
+end
+
+local function clearKind(kind)
+	for _, d in ipairs(Workspace:GetDescendants()) do
+		if d.Name == "DW_Tag" and d:GetAttribute("DWKind") == kind then
+			d:Destroy()
+		end
+	end
+end
+
+local function clearPlayerESP()
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p.Character then
+			local cham = p.Character:FindFirstChild("DW_Cham")
+			if cham then cham:Destroy() end
+			local head = p.Character:FindFirstChild("Head")
+			local tag = head and head:FindFirstChild("DW_Tag")
+			if tag then tag:Destroy() end
+		end
+	end
+end
+
+local function refreshPlayerESP()
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p ~= LP and p.Character then
+			local ch = p.Character
+			local head = ch:FindFirstChild("Head")
+			local hum = ch:FindFirstChildOfClass("Humanoid")
+			local teamHidden = S.ESPTeam and p.Team ~= nil and p.Team == LP.Team
+			if head and hum and S.ESPPlayers and not teamHidden and hum.Health > 0 then
+				local cham = ch:FindFirstChild("DW_Cham")
+				if S.ESPChams then
+					if not cham then
+						cham = Instance.new("Highlight")
+						cham.Name = "DW_Cham"
+						cham.FillTransparency = 0.6
+						cham.OutlineColor = Color3.new(1, 1, 1)
+						cham.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+						cham.Adornee = ch
+						cham.Parent = ch
+					end
+					cham.FillColor = p.Team and p.Team.TeamColor.Color or Color3.fromRGB(255, 70, 70)
+				elseif cham then
+					cham:Destroy()
+				end
+
+				local tag = head:FindFirstChild("DW_Tag")
+				if not tag then tag = makeTag(head, true, "player") end
+				local info = tag:FindFirstChild("Info")
+				if info then
+					info.Text = string.format("%s | %dm", p.DisplayName, distToMe(head.Position))
+				end
+				local bar = tag:FindFirstChild("BarBG")
+				local fill = bar and bar:FindFirstChild("Fill")
+				if fill then
+					fill.Size = UDim2.new(math.clamp(hum.Health / math.max(hum.MaxHealth, 1), 0, 1), 0, 1, 0)
+				end
+			end
+		end
+	end
+end
+
+local function refreshFruitESP()
+	for _, o in ipairs(Workspace:GetChildren()) do
+		if o:IsA("Tool") and o.Name:find("Fruit") then
+			local h = o:FindFirstChild("Handle")
+			if h and not h:FindFirstChild("DW_Tag") then
+				local bb = makeTag(h, false, "fruit")
+				bb.Info.TextColor3 = Color3.fromRGB(255, 210, 60)
+			end
+			if h and h:FindFirstChild("DW_Tag") then
+				h.DW_Tag.Info.Text = string.format("%s [%dm]", o.Name, distToMe(h.Position))
+			end
+		end
+	end
+end
+
+local lastChestScan = 0
+local function refreshChestESP()
+	if tick() - lastChestScan < 1.5 then return end
+	lastChestScan = tick()
+	for _, d in ipairs(Workspace:GetDescendants()) do
+		if d.Name:match("^Chest") and (d:IsA("Model") or d:IsA("BasePart")) then
+			local part = d:IsA("BasePart") and d or d:FindFirstChildWhichIsA("BasePart")
+			if part and not part:FindFirstChild("DW_Tag") then
+				local bb = makeTag(part, false, "chest")
+				bb.Info.TextColor3 = Color3.fromRGB(120, 220, 255)
+				bb.Info.Text = d.Name
+			end
+		end
+	end
+end
+
+local function clearPlayerTracers()
+	for _, l in pairs(Drawings) do l.Visible = false end
+end
+
+track(RunService.RenderStepped:Connect(function()
+	local cam = Workspace.CurrentCamera
+	if not cam or typeof(Drawing) ~= "table" then return end
+	local _, myHRP = char()
+	if not (S.ESPTracer and S.ESPPlayers and myHRP) then
+		clearPlayerTracers()
+		return
+	end
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p ~= LP then
+			local hrp = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
+			local hidden = S.ESPTeam and p.Team ~= nil and p.Team == LP.Team
+			local l = Drawings[p]
+			if hrp and not hidden then
+				local pos, onScreen = cam:WorldToViewportPoint(hrp.Position)
+				if onScreen then
+					if not l then
+						l = Drawing.new("Line")
+						l.Thickness = 1.4
+						l.Color = Color3.fromRGB(255, 255, 255)
+						Drawings[p] = l
+					end
+					l.From = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y)
+					l.To = Vector2.new(pos.X, pos.Y)
+					l.Visible = true
+				elseif l then
+					l.Visible = false
+				end
+			elseif l then
+				l.Visible = false
+			end
+		end
+	end
+end))
+
+task.spawn(function()
+	while Running do
+		task.wait(0.4)
+		if S.ESPPlayers then
+			ESPDirty.player = true
+			refreshPlayerESP()
+		elseif ESPDirty.player then
+			clearPlayerESP()
+			ESPDirty.player = false
+		end
+
+		if S.ESPFruit then
+			ESPDirty.fruit = true
+			refreshFruitESP()
+		elseif ESPDirty.fruit then
+			clearKind("fruit")
+			ESPDirty.fruit = false
+		end
+
+		if S.ESPChest then
+			ESPDirty.chest = true
+			refreshChestESP()
+		elseif ESPDirty.chest then
+			clearKind("chest")
+			ESPDirty.chest = false
+		end
+	end
+end)
+
+track(RunService.Heartbeat:Connect(function()
+	local ch, hrp, hum = char()
+	if not (ch and hrp and hum) or hum.Health <= 0 then return end
+
+	if S.Speed then
+		hum.WalkSpeed = S.SpeedVal
+		Applied.Speed = true
+	elseif Applied.Speed then
+		hum.WalkSpeed = 16
+		Applied.Speed = false
+	end
+
+	if S.Jump then
+		hum.UseJumpPower = true
+		hum.JumpPower = S.JumpVal
+		Applied.Jump = true
+	elseif Applied.Jump then
+		hum.JumpPower = 50
+		Applied.Jump = false
+	end
+
+	if S.Noclip then
+		for _, part in ipairs(ch:GetDescendants()) do
+			if part:IsA("BasePart") then part.CanCollide = false end
+		end
+		Applied.Noclip = true
+	elseif Applied.Noclip then
+		for _, part in ipairs(ch:GetDescendants()) do
+			if part:IsA("BasePart") and part.Name ~= "Handle" then part.CanCollide = true end
+		end
+		Applied.Noclip = false
+	end
+
+	local bv = hrp:FindFirstChild("DW_Fly")
+	if S.Fly then
+		if not bv then
+			bv = Instance.new("BodyVelocity")
+			bv.Name = "DW_Fly"
+			bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+			bv.Parent = hrp
+		end
+		local look = Workspace.CurrentCamera.CFrame.LookVector
+		local move = hum.MoveDirection
+		local vert = 0
+		if UIS:IsKeyDown(Enum.KeyCode.Space) then
+			vert = 1
+		elseif UIS:IsKeyDown(Enum.KeyCode.LeftControl) then
+			vert = -1
+		end
+		bv.Velocity = look * move.Magnitude * S.FlySpeed + Vector3.new(0, vert * S.FlySpeed, 0)
+	elseif bv then
+		bv:Destroy()
+	end
+end))
+
+track(UIS.JumpRequest:Connect(function()
+	if not S.InfJump then return end
+	local _, _, hum = char()
+	if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+end))
+
+track(LP.Idled:Connect(function()
+	if S.AntiAFK then
+		VirtualUser:CaptureController()
+		VirtualUser:ClickButton2(Vector2.new())
+	end
+end))
+
+task.spawn(function()
+	while Running do
+		task.wait(0.4)
+		if S.Hitbox then
+			local folder = Workspace:FindFirstChild("Enemies")
+			if folder then
+				for _, m in ipairs(folder:GetChildren()) do
+					local r = m:FindFirstChild("HumanoidRootPart")
+					if r then
+						if not HitboxOrig[r] then HitboxOrig[r] = r.Size end
+						local s = S.HitboxSize
+						r.Size = Vector3.new(s, s, s)
+						r.Transparency = 0.7
+						r.CanCollide = false
+					end
+				end
+			end
+		else
+			for r, sz in pairs(HitboxOrig) do
+				if r.Parent then
+					r.Size = sz
+					r.Transparency = 1
+				end
+				HitboxOrig[r] = nil
+			end
+		end
+	end
+end)
+
+local FARM_LOCK = false
+task.spawn(function()
+	while Running do
+		task.wait(0.1)
+		if not S.Farm then continue end
+		local ch, hrp, hum = char()
+		if ch and hrp and hum and hum.Health > 0 then
+			local q, target = nil, S.MobName
+			if S.FarmMode == "Level" then
+				q = questForLevel(getLevel())
+				if q then target = q.Mob end
+			end
+
+			if q and tick() - lastQuestAsk > 8 then
+				lastQuestAsk = tick()
+				hrp.CFrame = q.NPC
+				task.wait(0.4)
+				pcall(function()
+					CommF:InvokeServer("StartQuest", q.Quest, q.QLv)
+				end)
+				task.wait(0.4)
+			end
+
+			local mob = findMob(target)
+			if mob then
+				local mr = mob:FindFirstChild("HumanoidRootPart")
+				if mr then
+					hrp.AssemblyLinearVelocity = Vector3.zero
+					hrp.CFrame = CFrame.lookAt(mr.Position + Vector3.new(0, 8, 0), mr.Position)
+					local tool = getTool(hum)
+					if tool then tool:Activate() end
+				end
+			end
+		end
+	end
+end)
+
+task.spawn(function()
+	while Running do
+		task.wait(2)
+		if S.Stats then
+			pcall(function()
+				CommF:InvokeServer("AddPoint", S.StatPoint, 1)
+			end)
+		end
+	end
+end)
+
+task.spawn(function()
+	while Running do
+		task.wait(3)
+		if S.Haki then
+			local ch = LP.Character
+			if ch and not (ch:FindFirstChild("HasBuso") or ch:GetAttribute("HasBuso")) then
+				pcall(function()
+					CommF:InvokeServer("Buso")
+				end)
+			end
+		end
+	end
+end)
+
+task.spawn(function()
+	while Running do
+		task.wait(0.1)
+		if S.Aura then
+			local _, _, hum = char()
+			local target = findMob("Any", S.AuraRange)
+			if target and hum then
+				local tool = getTool(hum)
+				if tool then tool:Activate() end
+			end
+		end
+	end
+end)
+
+task.spawn(function()
+	while Running do
+		task.wait(1)
+		if S.Pickup then
+			local _, hrp = char()
+			if hrp then
+				for _, o in ipairs(Workspace:GetChildren()) do
+					if not S.Pickup then break end
+					local h = o:IsA("Tool") and o:FindFirstChild("Handle")
+					if h and o.Name:find("Fruit") then
+						hrp.CFrame = h.CFrame
+						pcall(function()
+							firetouchinterest(hrp, h, 0)
+							task.wait()
+							firetouchinterest(hrp, h, 1)
+						end)
+						task.wait(0.2)
+					end
+				end
+			end
+		end
+	end
+end)
+
+local RSpyPara
+if hookmetamethod and newcclosure and getnamecallmethod then
+	local oldNamecall
+	oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+		local method = getnamecallmethod()
+		if S.RSpy and Running and (method == "FireServer" or method == "InvokeServer") and typeof(self) == "Instance" then
+			table.insert(RSpyLog, method .. " | " .. self:GetFullName())
+			if #RSpyLog > 300 then table.remove(RSpyLog, 1) end
+		end
+		return oldNamecall(self, ...)
+	end))
+end
+
+track(RunService.Heartbeat:Connect(function() end))
+
+local function httpGet(url)
+	local req = request or http_request or (syn and syn.request)
+	if not req then return nil end
+	local ok, res = pcall(req, {Url = url, Method = "GET"})
+	if ok and res and res.Body then return res.Body end
+	return nil
+end
+
+local function serverHop()
+	local body = httpGet(("https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Asc&limit=100"):format(game.PlaceId))
+	if not body then notify("Server Hop", "Executor không hỗ trợ request") return end
+	local ok, data = pcall(HttpService.JSONDecode, HttpService, body)
+	if not ok or not data or not data.data then notify("Server Hop", "Không đọc được danh sách server") return end
+	local list = {}
+	for _, s in ipairs(data.data) do
+		if s.id ~= game.JobId and s.playing < s.maxPlayers then
+			table.insert(list, s.id)
+		end
+	end
+	if #list == 0 then notify("Server Hop", "Không có server trống") return end
+	pcall(function()
+		TeleportService:TeleportToPlaceInstance(game.PlaceId, list[math.random(#list)], LP)
+	end)
+end
+
+local function jobIdHop(id)
+	if not id or #id < 10 then notify("Job ID", "Job ID không hợp lệ") return end
+	pcall(function()
+		TeleportService:TeleportToPlaceInstance(game.PlaceId, id, LP)
+	end)
+end
+
+local function rejoin()
+	pcall(function()
+		TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LP)
+	end)
+end
+
+local function teleportTo(cf)
+	local _, hrp = char()
+	if hrp then
+		hrp.AssemblyLinearVelocity = Vector3.zero
+		hrp.CFrame = cf + Vector3.new(0, 5, 0)
+	end
+end
+
+local function findPlayerByName(name)
+	name = name:lower()
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p.Name:lower():find(name, 1, true) or p.DisplayName:lower():find(name, 1, true) then
+			return p
+		end
+	end
+	return nil
+end
+
+local function dumpTree(inst, depth, out)
+	if depth > 3 then return end
+	for _, c in ipairs(inst:GetChildren()) do
+		table.insert(out, string.rep("  ", depth) .. c.Name .. " [" .. c.ClassName .. "]")
+		dumpTree(c, depth + 1, out)
+	end
+end
+
+local function runCommand(text)
+	local args = {}
+	for w in text:gmatch("%S+") do table.insert(args, w) end
+	local cmd = (args[1] or ""):lower()
+	local arg = args[2]
+	local onOff = arg and (arg:lower() == "on" or arg:lower() == "1" or arg:lower() == "true")
+
+	if cmd == "speed" and tonumber(arg) then
+		S.SpeedVal = tonumber(arg)
+		setFlag("Speed", true)
+	elseif cmd == "jump" and tonumber(arg) then
+		S.JumpVal = tonumber(arg)
+		setFlag("Jump", true)
+	elseif cmd == "fly" then
+		setFlag("Fly", onOff)
+	elseif cmd == "noclip" then
+		setFlag("Noclip", onOff)
+	elseif cmd == "infjump" then
+		setFlag("InfJump", onOff)
+	elseif cmd == "tp" and arg then
+		local p = findPlayerByName(arg)
+		if p and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+			teleportTo(p.Character.HumanoidRootPart.CFrame)
+		else
+			notify("Command", "Không tìm thấy người chơi")
+		end
+	elseif cmd == "rejoin" then
+		rejoin()
+	elseif cmd == "hop" then
+		serverHop()
+	elseif cmd == "unload" then
+		getgenv().DarkwenV1Unload()
+	else
+		notify("Command", "Lệnh không hợp lệ")
+	end
+end
+
+local Window = Rayfield:CreateWindow({
+	Name = "Darkwen V1 | Blox Fruits",
+	LoadingTitle = "Darkwen V1",
+	LoadingSubtitle = "Blox Fruits Executor",
+	ConfigurationSaving = {Enabled = false},
+	Discord = {Enabled = false},
+	KeySystem = false,
+})
+
+local TabFarm = Window:CreateTab("Farm", 4483362458)
+local TabMove = Window:CreateTab("Movement", 4483362458)
+local TabCombat = Window:CreateTab("Combat", 4483362458)
+local TabESP = Window:CreateTab("ESP", 4483362458)
+local TabTeleport = Window:CreateTab("Teleport", 4483362458)
+local TabServer = Window:CreateTab("Server", 4483362458)
+local TabMisc = Window:CreateTab("Misc", 4483362458)
+
+local seaName = SEA_NAMES[game.PlaceId] or "Không xác định"
+TabFarm:CreateParagraph({Title = "Thông tin", Content = "Sea hiện tại: " .. seaName .. " | Level: " .. tostring(getLevel())})
+
+TabFarm:CreateSection("Auto Farm")
+Toggles.Farm = TabFarm:CreateToggle({Name = "Auto Farm", CurrentValue = false, Flag = "Farm", Callback = function(v) S.Farm = v end})
+TabFarm:CreateDropdown({
+	Name = "Chế độ farm",
+	Options = {"Level", "Mob"},
+	CurrentOption = {"Level"},
+	MultipleOptions = false,
+	Callback = function(opt)
+		S.FarmMode = type(opt) == "table" and opt[1] or opt
+	end,
+})
+local MobDropdown = TabFarm:CreateDropdown({
+	Name = "Mob (chế độ Mob)",
+	Options = scanMobs(),
+	CurrentOption = {"Any"},
+	MultipleOptions = false,
+	Callback = function(opt)
+		S.MobName = type(opt) == "table" and opt[1] or opt
+	end,
+})
+TabFarm:CreateButton({
+	Name = "Quét lại danh sách mob",
+	Callback = function()
+		pcall(function() MobDropdown:Refresh(scanMobs()) end)
+		notify("Mob", "Đã quét lại danh sách")
+	end,
+})
+
+TabFarm:CreateSection("Stats & Haki")
+Toggles.Stats = TabFarm:CreateToggle({Name = "Auto Stats", CurrentValue = false, Flag = "Stats", Callback = function(v) S.Stats = v end})
+TabFarm:CreateDropdown({
+	Name = "Điểm cộng",
+	Options = {"Melee", "Defense", "Sword", "Gun", "Demon Fruit"},
+	CurrentOption = {"Melee"},
+	MultipleOptions = false,
+	Callback = function(opt)
+		S.StatPoint = type(opt) == "table" and opt[1] or opt
+	end,
+})
+Toggles.Haki = TabFarm:CreateToggle({Name = "Auto Buso Haki", CurrentValue = false, Flag = "Haki", Callback = function(v) S.Haki = v end})
+
+TabMove:CreateSection("Movement")
+Toggles.Speed = TabMove:CreateToggle({Name = "Speed", CurrentValue = false, Flag = "Speed", Callback = function(v) S.Speed = v end})
+TabMove:CreateSlider({Name = "Tốc độ", Range = {16, 500}, Increment = 1, CurrentValue = 100, Flag = "SpeedVal", Callback = function(v) S.SpeedVal = v end})
+Toggles.Jump = TabMove:CreateToggle({Name = "Jump Power", CurrentValue = false, Flag = "Jump", Callback = function(v) S.Jump = v end})
+TabMove:CreateSlider({Name = "Lực nhảy", Range = {50, 400}, Increment = 1, CurrentValue = 120, Flag = "JumpVal", Callback = function(v) S.JumpVal = v end})
+Toggles.Fly = TabMove:CreateToggle({Name = "Fly (joystick theo camera)", CurrentValue = false, Flag = "Fly", Callback = function(v) S.Fly = v end})
+TabMove:CreateSlider({Name = "Tốc độ bay", Range = {20, 300}, Increment = 1, CurrentValue = 90, Flag = "FlySpeed", Callback = function(v) S.FlySpeed = v end})
+Toggles.Noclip = TabMove:CreateToggle({Name = "Noclip", CurrentValue = false, Flag = "Noclip", Callback = function(v) S.Noclip = v end})
+Toggles.InfJump = TabMove:CreateToggle({Name = "Infinite Jump", CurrentValue = false, Flag = "InfJump", Callback = function(v) S.InfJump = v end})
+
+TabCombat:CreateSection("Combat")
+Toggles.Hitbox = TabCombat:CreateToggle({Name = "Hitbox Expander", CurrentValue = false, Flag = "Hitbox", Callback = function(v) S.Hitbox = v end})
+TabCombat:CreateSlider({Name = "Kích thước hitbox", Range = {5, 80}, Increment = 1, CurrentValue = 25, Flag = "HitboxSize", Callback = function(v) S.HitboxSize = v end})
+Toggles.Aura = TabCombat:CreateToggle({Name = "Kill Aura", CurrentValue = false, Flag = "Aura", Callback = function(v) S.Aura = v end})
+TabCombat:CreateSlider({Name = "Tầm kill aura", Range = {5, 80}, Increment = 1, CurrentValue = 25, Flag = "AuraRange", Callback = function(v) S.AuraRange = v end})
+Toggles.Pickup = TabCombat:CreateToggle({Name = "Auto Pickup Trái", CurrentValue = false, Flag = "Pickup", Callback = function(v) S.Pickup = v end})
+
+TabESP:CreateSection("Player ESP")
+Toggles.ESPPlayers = TabESP:CreateToggle({Name = "Player ESP", CurrentValue = false, Flag = "ESPPlayers", Callback = function(v) S.ESPPlayers = v end})
+Toggles.ESPChams = TabESP:CreateToggle({Name = "Chams", CurrentValue = true, Flag = "ESPChams", Callback = function(v) S.ESPChams = v end})
+Toggles.ESPTracer = TabESP:CreateToggle({Name = "Tracer", CurrentValue = false, Flag = "ESPTracer", Callback = function(v) S.ESPTracer = v end})
+Toggles.ESPTeam = TabESP:CreateToggle({Name = "Ẩn đồng đội", CurrentValue = false, Flag = "ESPTeam", Callback = function(v) S.ESPTeam = v end})
+TabESP:CreateSection("World ESP")
+Toggles.ESPFruit = TabESP:CreateToggle({Name = "Fruit ESP", CurrentValue = false, Flag = "ESPFruit", Callback = function(v) S.ESPFruit = v end})
+Toggles.ESPChest = TabESP:CreateToggle({Name = "Chest ESP", CurrentValue = false, Flag = "ESPChest", Callback = function(v) S.ESPChest = v end})
+
+local islandNames = {}
+for _, i in ipairs(ISLANDS) do table.insert(islandNames, i.Name) end
+selectedIsland = ISLANDS[1]
+
+TabTeleport:CreateSection("Teleport đảo")
+TabTeleport:CreateDropdown({
+	Name = "Chọn đảo",
+	Options = islandNames,
+	CurrentOption = {islandNames[1]},
+	MultipleOptions = false,
+	Callback = function(opt)
+		local name = type(opt) == "table" and opt[1] or opt
+		for _, i in ipairs(ISLANDS) do
+			if i.Name == name then selectedIsland = i end
+		end
+	end,
+})
+TabTeleport:CreateButton({
+	Name = "Teleport tới đảo",
+	Callback = function()
+		if selectedIsland then teleportTo(selectedIsland.CF) end
+	end,
+})
+
+TabTeleport:CreateSection("Teleport người chơi")
+local function playerNames()
+	local list = {}
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p ~= LP then table.insert(list, p.Name) end
+	end
+	if #list == 0 then table.insert(list, "Không có") end
+	return list
+end
+local PlayerDropdown = TabTeleport:CreateDropdown({
+	Name = "Người chơi",
+	Options = playerNames(),
+	CurrentOption = {playerNames()[1]},
+	MultipleOptions = false,
+	Callback = function(opt)
+		selectedPlayer = type(opt) == "table" and opt[1] or opt
+	end,
+})
+TabTeleport:CreateButton({
+	Name = "Làm mới danh sách người chơi",
+	Callback = function()
+		pcall(function() PlayerDropdown:Refresh(playerNames()) end)
+	end,
+})
+TabTeleport:CreateButton({
+	Name = "Teleport tới người chơi đã chọn",
+	Callback = function()
+		local p = selectedPlayer and Players:FindFirstChild(selectedPlayer)
+		if p and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+			teleportTo(p.Character.HumanoidRootPart.CFrame)
+		else
+			notify("Teleport", "Không tìm thấy người chơi")
+		end
+	end,
+})
+
+TabServer:CreateSection("Server")
+TabServer:CreateButton({Name = "Server Hop", Callback = serverHop})
+TabServer:CreateButton({Name = "Rejoin", Callback = rejoin})
+TabServer:CreateInput({
+	Name = "Job ID Hop",
+	PlaceholderText = "Dán Job ID",
+	RemoveTextAfterFocusLost = false,
+	Callback = function(text) jobIdHop(text) end,
+})
+TabServer:CreateParagraph({Title = "Job ID hiện tại", Content = game.JobId})
+
+TabMisc:CreateSection("Misc")
+Toggles.AntiAFK = TabMisc:CreateToggle({Name = "Anti-AFK", CurrentValue = true, Flag = "AntiAFK", Callback = function(v) S.AntiAFK = v end})
+Toggles.RSpy = TabMisc:CreateToggle({Name = "Remote Spy", CurrentValue = false, Flag = "RSpy", Callback = function(v) S.RSpy = v end})
+RSpyPara = TabMisc:CreateParagraph({Title = "Remote Spy", Content = "Chưa có log"})
+TabMisc:CreateButton({
+	Name = "Copy log Remote",
+	Callback = function()
+		pcall(function() setclipboard(table.concat(RSpyLog, "\n")) end)
+		notify("Remote Spy", "Đã copy log")
+	end,
+})
+TabMisc:CreateButton({
+	Name = "Xóa log Remote",
+	Callback = function() table.clear(RSpyLog) end,
+})
+TabMisc:CreateButton({
+	Name = "Dump cây Workspace & ReplicatedStorage",
+	Callback = function()
+		local out = {"[Workspace]"}
+		dumpTree(Workspace, 1, out)
+		table.insert(out, "[ReplicatedStorage]")
+		dumpTree(ReplicatedStorage, 1, out)
+		local text = table.concat(out, "\n")
+		pcall(function() setclipboard(text) end)
+		print(text)
+		notify("Dump", "Đã copy và in ra console")
+	end,
+})
+TabMisc:CreateSection("Command Bar")
+TabMisc:CreateParagraph({
+	Title = "Cú pháp",
+	Content = "speed 150 | jump 200 | fly on/off | noclip on/off | infjump on/off | tp <tên> | rejoin | hop | unload",
+})
+TabMisc:CreateInput({
+	Name = "Command",
+	PlaceholderText = "Nhập lệnh rồi Enter",
+	RemoveTextAfterFocusLost = true,
+	Callback = function(text) runCommand(text) end,
+})
+
+task.spawn(function()
+	while Running do
+		task.wait(2)
+		if RSpyPara then
+			local tail = {}
+			for i = math.max(1, #RSpyLog - 5), #RSpyLog do
+				table.insert(tail, RSpyLog[i])
+			end
+			pcall(function()
+				RSpyPara:Set({
+					Title = "Remote Spy (" .. #RSpyLog .. ")",
+					Content = #tail > 0 and table.concat(tail, "\n") or "Chưa có log",
+				})
+			end)
+		end
+	end
+end)
+
+task.spawn(function()
+	while Running do
+		task.wait(10)
+		pcall(function()
+			local list = playerNames()
+			PlayerDropdown:Refresh(list)
+		end)
+	end
+end)
+
+getgenv().DarkwenV1Unload = function()
+	Running = false
+	for _, c in ipairs(Conns) do
+		pcall(function() c:Disconnect() end)
+	end
+	for _, l in pairs(Drawings) do
+		pcall(function() l:Remove() end)
+	end
+	table.clear(Drawings)
+	clearPlayerESP()
+	clearKind("fruit")
+	clearKind("chest")
+	local ch, hrp, hum = char()
+	if hum then
+		hum.WalkSpeed = 16
+		hum.JumpPower = 50
+	end
+	if ch then
+		for _, part in ipairs(ch:GetDescendants()) do
+			if part:IsA("BasePart") and part.Name ~= "Handle" then part.CanCollide = true end
+		end
+	end
+	if hrp then
+		local bv = hrp:FindFirstChild("DW_Fly")
+		if bv then bv:Destroy() end
+	end
+	for r, sz in pairs(HitboxOrig) do
+		if r.Parent then
+			r.Size = sz
+			r.Transparency = 1
+		end
+	end
+	table.clear(HitboxOrig)
+	pcall(function() Rayfield:Destroy() end)
+	getgenv().DarkwenV1Unload = nil
+end
+
+notify("Darkwen V1", "Đã load script Blox Fruits")
