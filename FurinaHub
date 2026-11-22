@@ -16,7 +16,7 @@ local Workspace = game:GetService("Workspace")
 local LP = Players.LocalPlayer
 local CommF = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("CommF_")
 
-local LOGO_FILE = "furina.png"
+local LOGO_FILES = {"furina.png", "furina.jpg", "furina.jpeg", "furina.webp"}
 local LOGO_ASSET = ""
 
 local ACCENT = Color3.fromRGB(110, 170, 255)
@@ -33,7 +33,6 @@ local Conns, Drawings, HitboxOrig, RSpyLog = {}, {}, {}, {}
 local Setters, Pages, TabBtns = {}, {}, {}
 local selectedPlayer, selectedIsland = nil, nil
 local lastQuestTime, lastAttack, lastChestScan = 0, 0, 0
-local espOn = {player = false, fruit = false, chest = false}
 local Popup, Gui, Main, InfoLbl, RSpyPara
 local dragging, dragStart, startPos = false, nil, nil
 
@@ -78,6 +77,52 @@ local ISLANDS = {
 local function track(c)
 	table.insert(Conns, c)
 	return c
+end
+
+local function notify(title, content)
+	pcall(function()
+		if not Gui then return end
+		local f = Instance.new("Frame")
+		f.Size = UDim2.new(0, 260, 0, 50)
+		f.AnchorPoint = Vector2.new(0.5, 0)
+		f.Position = UDim2.new(0.5, 0, 0, 12)
+		f.BackgroundColor3 = BG_MAIN
+		f.BorderSizePixel = 0
+		f.ZIndex = 100
+		f.Parent = Gui
+		local c1 = Instance.new("UICorner")
+		c1.CornerRadius = UDim.new(0, 10)
+		c1.Parent = f
+		local st = Instance.new("UIStroke")
+		st.Color = ACCENT
+		st.Parent = f
+		local t = Instance.new("TextLabel")
+		t.BackgroundTransparency = 1
+		t.Size = UDim2.new(1, -16, 0, 22)
+		t.Position = UDim2.fromOffset(8, 4)
+		t.Font = Enum.Font.GothamBold
+		t.TextSize = 13
+		t.TextColor3 = ACCENT
+		t.TextXAlignment = Enum.TextXAlignment.Left
+		t.Text = title
+		t.ZIndex = 101
+		t.Parent = f
+		local c = Instance.new("TextLabel")
+		c.BackgroundTransparency = 1
+		c.Size = UDim2.new(1, -16, 0, 20)
+		c.Position = UDim2.fromOffset(8, 26)
+		c.Font = Enum.Font.GothamMedium
+		c.TextSize = 12
+		c.TextColor3 = Color3.fromRGB(210, 210, 220)
+		c.TextXAlignment = Enum.TextXAlignment.Left
+		c.TextWrapped = true
+		c.Text = content
+		c.ZIndex = 101
+		c.Parent = f
+		task.delay(3, function()
+			if f then f:Destroy() end
+		end)
+	end)
 end
 
 local function char()
@@ -341,6 +386,7 @@ track(RunService.RenderStepped:Connect(function()
 	end
 end))
 
+local espOn = {player = false, fruit = false, chest = false}
 task.spawn(function()
 	while Running do
 		task.wait(0.4)
@@ -731,29 +777,18 @@ local function mkLabel(parent, text, size, pos, tsize, align)
 	return l
 end
 
-local function notify(title, content)
-	pcall(function()
-		local f = Instance.new("Frame")
-		f.Size = UDim2.fromOffset(260, 50)
-		f.AnchorPoint = Vector2.new(0.5, 0)
-		f.Position = UDim2.new(0.5, 0, 0, 12)
-		f.BackgroundColor3 = BG_MAIN
-		f.BorderSizePixel = 0
-		f.ZIndex = 100
-		f.Parent = Gui
-		corner(f, 10)
-		local st = Instance.new("UIStroke")
-		st.Color = ACCENT
-		st.Parent = f
-		local t = mkLabel(f, title, UDim2.new(1, -16, 0, 22), UDim2.fromOffset(8, 4), 13)
-		t.Font = Enum.Font.GothamBold
-		t.TextColor3 = ACCENT
-		local c = mkLabel(f, content, UDim2.new(1, -16, 0, 20), UDim2.fromOffset(8, 26), 12)
-		c.TextColor3 = Color3.fromRGB(210, 210, 220)
-		task.delay(3, function()
-			if f then f:Destroy() end
-		end)
-	end)
+local function resolveLogo()
+	if LOGO_ASSET ~= "" then return LOGO_ASSET end
+	if getcustomasset and isfile then
+		for _, f in ipairs(LOGO_FILES) do
+			local ok1, exists = pcall(isfile, f)
+			if ok1 and exists then
+				local ok2, asset = pcall(getcustomasset, f)
+				if ok2 and asset then return asset end
+			end
+		end
+	end
+	return ""
 end
 
 local function getParent()
@@ -762,18 +797,12 @@ local function getParent()
 	return CoreGui
 end
 
-local function resolveLogo()
-	if getcustomasset and isfile and isfile(LOGO_FILE) then
-		local ok, asset = pcall(getcustomasset, LOGO_FILE)
-		if ok and asset then return asset end
-	end
-	return LOGO_ASSET
-end
-
 local vp = Workspace.CurrentCamera and Workspace.CurrentCamera.ViewportSize or Vector2.new(800, 500)
 local isMobile = UIS.TouchEnabled and not UIS.KeyboardEnabled
-local W = math.min(isMobile and 460 or 560, vp.X - 16)
-local H = math.min(isMobile and 280 or 340, vp.Y - 16)
+local W = math.min(isMobile and 440 or 560, vp.X - 20)
+local H = math.min(isMobile and 290 or 340, vp.Y - 40)
+local SIDE_W = 110
+local LOGO_IMG = resolveLogo()
 
 Gui = Instance.new("ScreenGui")
 Gui.Name = "FurinaHub_" .. HttpService:GenerateGUID(false):sub(1, 8)
@@ -825,22 +854,22 @@ local btnMin = winBtn("–", -62)
 local btnClose = winBtn("×", -32, Color3.fromRGB(255, 110, 110))
 
 local Sidebar = Instance.new("Frame")
-Sidebar.Size = UDim2.new(0, 120, 1, -34)
+Sidebar.Size = UDim2.new(0, SIDE_W, 1, -34)
 Sidebar.Position = UDim2.fromOffset(0, 34)
 Sidebar.BackgroundColor3 = BG_SIDE
 Sidebar.BorderSizePixel = 0
 Sidebar.Parent = Main
 
 local Content = Instance.new("Frame")
-Content.Size = UDim2.new(1, -120, 1, -34)
-Content.Position = UDim2.fromOffset(120, 34)
+Content.Size = UDim2.new(1, -SIDE_W, 1, -34)
+Content.Position = UDim2.fromOffset(SIDE_W, 34)
 Content.BackgroundTransparency = 1
 Content.Parent = Main
 
 local logoBox = Instance.new("Frame")
 logoBox.AnchorPoint = Vector2.new(0.5, 0)
-logoBox.Position = UDim2.new(0.5, 0, 0, 8)
-logoBox.Size = UDim2.fromOffset(56, 56)
+logoBox.Position = UDim2.new(0.5, 0, 0, 6)
+logoBox.Size = UDim2.fromOffset(52, 52)
 logoBox.BackgroundColor3 = BG_ROW
 logoBox.ClipsDescendants = true
 logoBox.Parent = Sidebar
@@ -850,18 +879,18 @@ local logo = Instance.new("ImageLabel")
 logo.Size = UDim2.fromScale(1, 1)
 logo.BackgroundTransparency = 1
 logo.ScaleType = Enum.ScaleType.Crop
-logo.Image = resolveLogo()
+logo.Image = LOGO_IMG
 logo.Parent = logoBox
-corner(logoBox, 12)
+corner(logo, 12)
 
 local logoFallback = mkLabel(logoBox, "F", UDim2.fromScale(1, 1), UDim2.new(), 26, Enum.TextXAlignment.Center)
 logoFallback.Font = Enum.Font.GothamBold
 logoFallback.TextColor3 = ACCENT
-logoFallback.Visible = logo.Image == ""
+logoFallback.Visible = LOGO_IMG == ""
 
 local TabHolder = Instance.new("Frame")
-TabHolder.Position = UDim2.fromOffset(6, 72)
-TabHolder.Size = UDim2.new(1, -12, 1, -78)
+TabHolder.Position = UDim2.fromOffset(6, 64)
+TabHolder.Size = UDim2.new(1, -12, 1, -70)
 TabHolder.BackgroundTransparency = 1
 TabHolder.Parent = Sidebar
 local tabLayout = Instance.new("UIListLayout")
@@ -881,13 +910,13 @@ local tabOrder = 0
 local function addTab(name)
 	tabOrder = tabOrder + 1
 	local b = Instance.new("TextButton")
-	b.Size = UDim2.new(1, 0, 0, 30)
+	b.Size = UDim2.new(1, 0, 0, 28)
 	b.LayoutOrder = tabOrder
 	b.BackgroundColor3 = BG_ROW
 	b.AutoButtonColor = false
 	b.Text = name
 	b.Font = Enum.Font.GothamMedium
-	b.TextSize = 13
+	b.TextSize = 12
 	b.TextColor3 = Color3.fromRGB(220, 220, 228)
 	b.Parent = TabHolder
 	corner(b, 6)
@@ -926,7 +955,7 @@ local function row(page, h)
 end
 
 local function addSection(page, text)
-	local l = mkLabel(page, text, UDim2.new(1, -6, 0, 22), UDim2.new(), 13)
+	local l = mkLabel(page, text, UDim2.new(1, -6, 0, 20), UDim2.new(), 12)
 	l.Font = Enum.Font.GothamBold
 	l.TextColor3 = ACCENT
 end
@@ -958,8 +987,8 @@ local function openPopup(title, options, onPick)
 		Popup = nil
 	end
 	local p = Instance.new("Frame")
-	p.Size = UDim2.new(0.86, 0, 0.8, 0)
-	p.Position = UDim2.new(0.07, 0, 0.1, 0)
+	p.Size = UDim2.new(0.9, 0, 0.84, 0)
+	p.Position = UDim2.new(0.05, 0, 0.08, 0)
 	p.BackgroundColor3 = Color3.fromRGB(14, 14, 19)
 	p.BorderSizePixel = 0
 	p.ZIndex = 20
@@ -994,6 +1023,7 @@ local function openPopup(title, options, onPick)
 	list.ScrollBarThickness = 3
 	list.CanvasSize = UDim2.new()
 	list.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	list.ZIndex = 21
 	list.Parent = p
 	local lay = Instance.new("UIListLayout")
 	lay.Padding = UDim.new(0, 4)
@@ -1009,6 +1039,7 @@ local function openPopup(title, options, onPick)
 		b.Font = Enum.Font.GothamMedium
 		b.TextSize = 13
 		b.TextColor3 = TXT
+		b.ZIndex = 22
 		b.Parent = list
 		corner(b, 6)
 		b.MouseButton1Click:Connect(function()
@@ -1022,8 +1053,8 @@ end
 
 local function addToggle(page, text, key, default, cb)
 	S[key] = default
-	local r = row(page, 36)
-	mkLabel(r, text, UDim2.new(1, -62, 1, 0), UDim2.fromOffset(10, 0), 13)
+	local r = row(page, 34)
+	mkLabel(r, text, UDim2.new(1, -62, 1, 0), UDim2.fromOffset(10, 0), 12)
 
 	local sw = Instance.new("TextButton")
 	sw.Size = UDim2.fromOffset(40, 20)
@@ -1055,9 +1086,9 @@ end
 
 local function addSlider(page, text, key, minV, maxV, default, cb)
 	S[key] = default
-	local r = row(page, 50)
-	mkLabel(r, text, UDim2.new(1, -70, 0, 20), UDim2.fromOffset(10, 4), 13)
-	local valL = mkLabel(r, tostring(default), UDim2.new(0, 60, 0, 20), UDim2.new(1, -70, 0, 4), 13, Enum.TextXAlignment.Right)
+	local r = row(page, 48)
+	mkLabel(r, text, UDim2.new(1, -70, 0, 20), UDim2.fromOffset(10, 4), 12)
+	local valL = mkLabel(r, tostring(default), UDim2.new(0, 60, 0, 20), UDim2.new(1, -70, 0, 4), 12, Enum.TextXAlignment.Right)
 	valL.TextColor3 = ACCENT
 
 	local hit = Instance.new("TextButton")
@@ -1130,16 +1161,16 @@ end
 
 local function addDropdown(page, text, key, optsFn, default, cb)
 	if key then S[key] = default end
-	local r = row(page, 36)
-	mkLabel(r, text, UDim2.new(1, -150, 1, 0), UDim2.fromOffset(10, 0), 13)
+	local r = row(page, 34)
+	mkLabel(r, text, UDim2.new(1, -140, 1, 0), UDim2.fromOffset(10, 0), 12)
 
 	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(0, 130, 0, 26)
-	btn.Position = UDim2.new(1, -138, 0.5, -13)
+	btn.Size = UDim2.new(0, 120, 0, 24)
+	btn.Position = UDim2.new(1, -128, 0.5, -12)
 	btn.BackgroundColor3 = BG_INPUT
 	btn.Text = tostring(default)
 	btn.Font = Enum.Font.GothamMedium
-	btn.TextSize = 12
+	btn.TextSize = 11
 	btn.TextColor3 = TXT
 	btn.TextTruncate = Enum.TextTruncate.AtEnd
 	btn.Parent = r
@@ -1155,14 +1186,14 @@ local function addDropdown(page, text, key, optsFn, default, cb)
 end
 
 local function addButton(page, text, cb)
-	local r = row(page, 34)
+	local r = row(page, 32)
 	local b = Instance.new("TextButton")
 	b.Size = UDim2.new(1, -20, 1, -8)
 	b.Position = UDim2.fromOffset(10, 4)
 	b.BackgroundColor3 = BG_INPUT
 	b.Text = text
 	b.Font = Enum.Font.GothamMedium
-	b.TextSize = 13
+	b.TextSize = 12
 	b.TextColor3 = TXT
 	b.Parent = r
 	corner(b, 6)
@@ -1170,9 +1201,9 @@ local function addButton(page, text, cb)
 end
 
 local function addInput(page, placeholder, clearAfter, cb)
-	local r = row(page, 36)
+	local r = row(page, 34)
 	local tb = Instance.new("TextBox")
-	tb.Size = UDim2.new(1, -20, 0, 26)
+	tb.Size = UDim2.new(1, -20, 0, 24)
 	tb.Position = UDim2.fromOffset(10, 5)
 	tb.BackgroundColor3 = BG_INPUT
 	tb.Text = ""
@@ -1180,7 +1211,7 @@ local function addInput(page, placeholder, clearAfter, cb)
 	tb.PlaceholderColor3 = Color3.fromRGB(140, 140, 150)
 	tb.TextColor3 = TXT
 	tb.Font = Enum.Font.GothamMedium
-	tb.TextSize = 13
+	tb.TextSize = 12
 	tb.ClearTextOnFocus = false
 	tb.Parent = r
 	corner(tb, 6)
@@ -1216,7 +1247,9 @@ addSection(pFarm, "Auto Farm")
 addToggle(pFarm, "Auto Farm", "Farm", false)
 addDropdown(pFarm, "Chế độ farm", "FarmMode", function() return {"Level", "Mob"} end, "Level")
 addDropdown(pFarm, "Mob (chế độ Mob)", "MobName", scanMobs, "Any")
-addButton(pFarm, "Quét lại danh sách mob", function() notify("Mob", "Danh sách đã được làm mới") end)
+addButton(pFarm, "Quét lại danh sách mob", function()
+	notify("Mob", "Đã quét: " .. (#scanMobs() - 1) .. " loại quái")
+end)
 
 addSection(pFarm, "Stats & Haki")
 addToggle(pFarm, "Auto Stats", "Stats", false)
@@ -1309,6 +1342,9 @@ addSection(pMisc, "Command Bar")
 addParagraph(pMisc, "speed 150 | jump 200 | fly on/off | noclip on/off | infjump on/off | tp <tên> | rejoin | hop | unload")
 addInput(pMisc, "Nhập lệnh rồi Enter", true, runCommand)
 
+for _, name in ipairs({"Farm", "Movement", "Combat", "ESP", "Teleport", "Server", "Misc"}) do
+	-- pages đã tạo ở trên, tab đã gắn
+end
 selectTab("Farm")
 
 -- Kéo cửa sổ
@@ -1331,27 +1367,39 @@ track(UIS.InputEnded:Connect(function(i)
 	end
 end))
 
--- Nút mở/ẩn menu (nổi bên trái, tiện cho mobile)
+-- Nút mở/ẩn menu, dùng logo nếu có
 local OpenBtn = Instance.new("TextButton")
-OpenBtn.Size = UDim2.fromOffset(44, 44)
-OpenBtn.Position = UDim2.new(0, 10, 0.5, -22)
+OpenBtn.Size = UDim2.fromOffset(46, 46)
+OpenBtn.Position = UDim2.new(0, 10, 0.5, -23)
 OpenBtn.BackgroundColor3 = BG_MAIN
-OpenBtn.Text = "F"
+OpenBtn.Text = LOGO_IMG == "" and "F" or ""
 OpenBtn.Font = Enum.Font.GothamBold
 OpenBtn.TextSize = 20
 OpenBtn.TextColor3 = ACCENT
 OpenBtn.AutoButtonColor = true
 OpenBtn.Parent = Gui
-corner(OpenBtn, 22)
+corner(OpenBtn, 23)
 local openStroke = Instance.new("UIStroke")
 openStroke.Color = ACCENT
 openStroke.Parent = OpenBtn
+if LOGO_IMG ~= "" then
+	local oi = Instance.new("ImageLabel")
+	oi.Size = UDim2.fromScale(1, 1)
+	oi.BackgroundTransparency = 1
+	oi.ScaleType = Enum.ScaleType.Crop
+	oi.Image = LOGO_IMG
+	oi.Parent = OpenBtn
+	corner(oi, 23)
+end
 OpenBtn.MouseButton1Click:Connect(function()
 	Main.Visible = not Main.Visible
 end)
 
 btnMin.MouseButton1Click:Connect(function()
 	Main.Visible = false
+end)
+btnClose.MouseButton1Click:Connect(function()
+	if getgenv().FurinaHubUnload then getgenv().FurinaHubUnload() end
 end)
 
 -- Vòng cập nhật thông tin và log
